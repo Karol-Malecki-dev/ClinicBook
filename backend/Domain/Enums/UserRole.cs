@@ -13,9 +13,9 @@ namespace Domain.Enums
     public enum UserRole
     {
         /// <summary>Standard user role with limited permissions; can read books and track progress</summary>
-        User,
+        User = 1,
 
         /// <summary>Administrator role with full system access; manages users, books, and system configuration</summary>
-        Admin,
+        SystemAdministrator = 2
     }
 }

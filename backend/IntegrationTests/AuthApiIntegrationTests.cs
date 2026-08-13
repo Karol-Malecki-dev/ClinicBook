@@ -387,7 +387,7 @@ public class AuthApiIntegrationTests
     [Fact]
     public async Task Admin_endpoint_allows_admin_role()
     {
-        await SeedUserAsync("admin@example.com", "password123", "Admin User", UserRole.Admin);
+        await SeedUserAsync("admin@example.com", "password123", "SystemAdministrator User", UserRole.SystemAdministrator);
 
         var tokens = await LoginAsync("admin@example.com", "password123");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);

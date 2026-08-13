@@ -1,0 +1,27 @@
+﻿using Application.DTOs.Clinic;
+using Application.DTOs.Clinic.ClinicService;
+using FluentValidation;
+
+namespace API.Validators.Clinic.ClinicService;
+
+public sealed class CreateClinicServiceRequestDtoValidator
+    : AbstractValidator<CreateClinicServiceRequestDto>
+{
+    public CreateClinicServiceRequestDtoValidator()
+    {
+        RuleFor(request => request.Name)
+            .NotEmpty()
+            .MaximumLength(256);
+
+        RuleFor(request => request.Address)
+            .NotNull()
+            .SetValidator(new global::API.Validators.AddressDtoValidator());
+
+        RuleFor(request => request.Email)
+            .MaximumLength(256);
+
+        RuleFor(request => request.Email)
+            .EmailAddress()
+            .When(request => !string.IsNullOrWhiteSpace(request.Email));
+    }
+}

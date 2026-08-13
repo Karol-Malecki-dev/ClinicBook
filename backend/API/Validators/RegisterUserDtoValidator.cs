@@ -29,7 +29,7 @@ public class RegisterUserDtoValidator : AbstractValidator<RegisterUserDto>
             .MaximumLength(20).WithMessage("Phone number must be at most 20 characters");
 
         RuleFor(x => x.Address)
-            .MaximumLength(250).WithMessage("Address must be at most 250 characters");
+            .MaximumLength(250).WithMessage("AddressValidator must be at most 250 characters");
 
         RuleFor(x => x.CreatedAt)
             .Must(createdAt => createdAt <= DateTime.UtcNow)

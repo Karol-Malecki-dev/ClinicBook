@@ -35,7 +35,7 @@ public class UsersApiIntegrationTests
     [Fact]
     public async Task GetAllUsers_Returns_paged_users_when_authorized()
     {
-        await SeedUserAsync("admin.users@example.com", "password123", "Admin Users", UserRole.Admin);
+        await SeedUserAsync("admin.users@example.com", "password123", "SystemAdministrator Users", UserRole.SystemAdministrator);
         await SeedUserAsync("user.one@example.com", "password123", "User One", UserRole.User);
         await SeedUserAsync("user.two@example.com", "password123", "User Two", UserRole.User);
 
@@ -56,7 +56,7 @@ public class UsersApiIntegrationTests
     public async Task GetUserById_Returns_user_when_authorized_and_user_exists()
     {
         var userId = await SeedUserAsync("lookup.user@example.com", "password123", "Lookup User", UserRole.User);
-        await SeedUserAsync("admin.lookup@example.com", "password123", "Admin Lookup", UserRole.Admin);
+        await SeedUserAsync("admin.lookup@example.com", "password123", "SystemAdministrator Lookup", UserRole.SystemAdministrator);
 
         var tokens = await LoginAsync("admin.lookup@example.com", "password123");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
@@ -88,7 +88,7 @@ public class UsersApiIntegrationTests
     [Fact]
     public async Task GetCount_Returns_user_count_for_admin()
     {
-        await SeedUserAsync("count.admin@example.com", "password123", "Count Admin", UserRole.Admin);
+        await SeedUserAsync("count.admin@example.com", "password123", "Count SystemAdministrator", UserRole.SystemAdministrator);
         await SeedUserAsync("count.extra@example.com", "password123", "Count Extra", UserRole.User);
 
         var tokens = await LoginAsync("count.admin@example.com", "password123");
@@ -107,7 +107,7 @@ public class UsersApiIntegrationTests
     public async Task Delete_Removes_user_for_admin()
     {
         var userId = await SeedUserAsync("delete.user@example.com", "password123", "Delete User", UserRole.User);
-        await SeedUserAsync("delete.admin@example.com", "password123", "Delete Admin", UserRole.Admin);
+        await SeedUserAsync("delete.admin@example.com", "password123", "Delete SystemAdministrator", UserRole.SystemAdministrator);
 
         var tokens = await LoginAsync("delete.admin@example.com", "password123");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);

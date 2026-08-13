@@ -114,9 +114,9 @@ public class UsersControllerTests
         var userId = Guid.NewGuid();
         var expected = new UserDto { Id = userId, Email = "user@test.com", FirstName = "John", LastName = "Doe" };
 
-        _userServiceMock.Setup(x => x.UpdateUserRoleAsync(userId, "Admin")).ReturnsAsync(ApiResponse<UserDto>.Success(expected));
+        _userServiceMock.Setup(x => x.UpdateUserRoleAsync(userId, "SystemAdministrator")).ReturnsAsync(ApiResponse<UserDto>.Success(expected));
 
-        var actionResult = await _controller.UpdateRole(userId, "Admin");
+        var actionResult = await _controller.UpdateRole(userId, "SystemAdministrator");
 
         var okResult = Assert.IsType<OkObjectResult>(actionResult.Result);
         var response = Assert.IsType<ApiResponse<UserDto>>(okResult.Value);
