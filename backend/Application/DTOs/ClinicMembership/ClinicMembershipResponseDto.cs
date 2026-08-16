@@ -1,6 +1,6 @@
 using Domain.Enums;
 
-namespace Application.DTOs.Clinic.ClinicMembership;
+namespace Application.DTOs.ClinicMembership;
 
 /// <summary>
 /// Represents a clinic membership returned by the API.

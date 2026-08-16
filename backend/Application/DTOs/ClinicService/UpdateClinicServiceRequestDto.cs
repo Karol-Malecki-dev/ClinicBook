@@ -1,6 +1,6 @@
 using Application.DTOs.Other;
 
-namespace Application.DTOs.Clinic.ClinicService;
+namespace Application.DTOs.ClinicService;
 
 /// <summary>
 /// Contains the clinic service fields that can be updated.

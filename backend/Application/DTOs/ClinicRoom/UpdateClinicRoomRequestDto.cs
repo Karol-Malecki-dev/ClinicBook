@@ -1,4 +1,4 @@
-namespace Application.DTOs.Clinic.ClinicRoom;
+namespace Application.DTOs.ClinicRoom;
 
 /// <summary>
 /// Contains the clinic room fields that can be updated.

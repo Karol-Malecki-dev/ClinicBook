@@ -1,4 +1,4 @@
-namespace Application.DTOs.Clinic.Specialization;
+namespace Application.DTOs.Specialization;
 
 /// <summary>
 /// Contains the data required to create a specialization.

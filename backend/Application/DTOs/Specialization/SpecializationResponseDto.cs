@@ -1,4 +1,4 @@
-namespace Application.DTOs.Clinic.Specialization;
+namespace Application.DTOs.Specialization;
 
 /// <summary>
 /// Represents a specialization returned by the API.

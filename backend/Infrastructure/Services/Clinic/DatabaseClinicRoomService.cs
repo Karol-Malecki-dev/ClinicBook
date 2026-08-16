@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.ClinicRoom;
+﻿using Application.DTOs.ClinicRoom;
 using Application.Interfaces.Clinic;
 using Domain.Entities;
 using Domain.Entities.Clinic;

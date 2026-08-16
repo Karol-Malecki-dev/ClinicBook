@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.ClinicMembership;
+﻿using Application.DTOs.ClinicMembership;
 using Application.Interfaces.Clinic;
 using Domain.Entities;
 using Domain.Entities.Clinic;

@@ -1,6 +1,6 @@
 using Domain.Enums;
 
-namespace Application.DTOs.Clinic.ClinicMembership;
+namespace Application.DTOs.ClinicMembership;
 
 /// <summary>
 /// Contains the new role for an existing clinic membership.

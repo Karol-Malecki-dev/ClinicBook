@@ -18,16 +18,41 @@ public sealed class DatabasePatientProfileService : IPatientProfileService
         ArgumentNullException.ThrowIfNull(dbContext);
         _dbContext = dbContext;
     }
-        public async Task<ApiResponse<PatientProfileResponseDto>> CreatePatientProfileAsync(Guid currentUserId, Guid patientUserId, CreatePatientProfileRequestDto request)
+    public async Task<ApiResponse<PatientProfileResponseDto>> CreatePatientProfileAsync(Guid currentUserId, Guid patientUserId, CreatePatientProfileRequestDto request)
         {
-            ArgumentNullException.ThrowIfNull(request, nameof(request));
-            if(currentUserId == Guid.Empty)
+            ArgumentNullException.ThrowIfNull(request);
+
+            var validationError = ValidateUserIds<PatientProfileResponseDto>(currentUserId, patientUserId);
+            if (validationError is not null)
             {
-                return ApiResponse<PatientProfileResponseDto>.Error(400, "Current user ID cannot be empty.");
+                return validationError;
             }
-            
-            if(patientUserId == Guid.Empty) {
-                return ApiResponse<PatientProfileResponseDto>.Error(400, "Patient user ID cannot be empty.");
+
+            if (currentUserId != patientUserId)
+            {
+                return ApiResponse<PatientProfileResponseDto>.Error(
+                    403,
+                    "A user can create only their own patient profile.");
+            }
+
+            var userExists = await _dbContext.Users
+                .AnyAsync(user => user.Id == patientUserId && user.IsActive);
+
+            if (!userExists)
+            {
+                return ApiResponse<PatientProfileResponseDto>.Error(
+                    404,
+                    "Patient user not found or inactive.");
+            }
+
+            var profileExists = await _dbContext.PatientProfiles
+                .AnyAsync(profile => profile.UserId == patientUserId);
+
+            if (profileExists)
+            {
+                return ApiResponse<PatientProfileResponseDto>.Error(
+                    409,
+                    "A patient profile already exists for this user.");
             }
 
             var patientProfile = new PatientProfile(
@@ -40,20 +65,26 @@ public sealed class DatabasePatientProfileService : IPatientProfileService
             _dbContext.PatientProfiles.Add(patientProfile);
             await _dbContext.SaveChangesAsync();
 
-            return ApiResponse<PatientProfileResponseDto>.Success(PatientProfileMapper.ToResponseDto(patientProfile), "Patient profile created successfully.");
+            return ApiResponse<PatientProfileResponseDto>.Success(
+                PatientProfileMapper.ToResponseDto(patientProfile),
+                "Patient profile created successfully.",
+                201);
 
         }
 
         public async Task<ApiResponse<bool>> DeletePatientProfileAsync(Guid currentUserId, Guid patientUserId)
         {
-            if (currentUserId == Guid.Empty)
+            var validationError = ValidateUserIds<bool>(currentUserId, patientUserId);
+            if (validationError is not null)
             {
-                return ApiResponse<bool>.Error(400, "Current user ID cannot be empty.");
+                return validationError;
             }
 
-            if (patientUserId == Guid.Empty)
+            if (currentUserId != patientUserId)
             {
-                return ApiResponse<bool>.Error(400, "Patient user ID cannot be empty.");
+                return ApiResponse<bool>.Error(
+                    403,
+                    "A user can delete only their own patient profile.");
             }
 
             var patientProfile = await _dbContext.PatientProfiles
@@ -76,14 +107,17 @@ public sealed class DatabasePatientProfileService : IPatientProfileService
 
         public async Task<ApiResponse<PatientProfileResponseDto>> GetPatientProfileAsync(Guid currentUserId, Guid patientUserId)
         {
-            if (currentUserId == Guid.Empty)
+            var validationError = ValidateUserIds<PatientProfileResponseDto>(currentUserId, patientUserId);
+            if (validationError is not null)
             {
-                return ApiResponse<PatientProfileResponseDto>.Error(400, "Current user ID cannot be empty.");
+                return validationError;
             }
 
-            if (patientUserId == Guid.Empty)
+            if (currentUserId != patientUserId)
             {
-                return ApiResponse<PatientProfileResponseDto>.Error(400, "Patient user ID cannot be empty.");
+                return ApiResponse<PatientProfileResponseDto>.Error(
+                    403,
+                    "A user can update only their own patient profile.");
             }
 
             var patientProfile = await _dbContext.PatientProfiles
@@ -98,18 +132,21 @@ public sealed class DatabasePatientProfileService : IPatientProfileService
             return ApiResponse<PatientProfileResponseDto>.Success(PatientProfileMapper.ToResponseDto(patientProfile), "Patient profile retrieved successfully.");
         }
 
-        public async Task<ApiResponse<PatientProfileResponseDto>> UpdatePatientProfileAsync(Guid currentUserId, Guid patientUserId, UpdatePatientProfileRequestDto request)
+    public async Task<ApiResponse<PatientProfileResponseDto>> UpdatePatientProfileAsync(Guid currentUserId, Guid patientUserId, UpdatePatientProfileRequestDto request)
         {
-            ArgumentNullException.ThrowIfNull(request, nameof(request));
+            ArgumentNullException.ThrowIfNull(request);
 
-            if (currentUserId == Guid.Empty)
+            var validationError = ValidateUserIds<PatientProfileResponseDto>(currentUserId, patientUserId);
+            if (validationError is not null)
             {
-                return ApiResponse<PatientProfileResponseDto>.Error(400, "Current user ID cannot be empty.");
+                return validationError;
             }
 
-            if (patientUserId == Guid.Empty)
+            if (currentUserId != patientUserId)
             {
-                return ApiResponse<PatientProfileResponseDto>.Error(400, "Patient user ID cannot be empty.");
+                return ApiResponse<PatientProfileResponseDto>.Error(
+                    403,
+                    "A user can update only their own patient profile.");
             }
 
             var patientProfile = await _dbContext.PatientProfiles
@@ -131,5 +168,12 @@ public sealed class DatabasePatientProfileService : IPatientProfileService
             await _dbContext.SaveChangesAsync();
 
             return ApiResponse<PatientProfileResponseDto>.Success(PatientProfileMapper.ToResponseDto(patientProfile), "Patient profile updated successfully.");
+        }
+
+        private static ApiResponse<T>? ValidateUserIds<T>(Guid currentUserId, Guid patientUserId)
+        {
+            return currentUserId == Guid.Empty || patientUserId == Guid.Empty
+                ? ApiResponse<T>.Error(400, "User IDs cannot be empty.")
+                : null;
         }
     }

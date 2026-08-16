@@ -1,11 +1,11 @@
 using Application.DTOs.Other;
 
-namespace Application.DTOs.Clinic.Clinic;
+namespace Application.DTOs.Clinic;
 
 /// <summary>
-/// Contains the data required to create a clinic.
+/// Contains the clinic fields that can be updated.
 /// </summary>
-public sealed class CreateClinicRequestDto
+public sealed class UpdateClinicRequestDto
 {
     public string Name { get; init; } = string.Empty;
     public AddressDto Address { get; init; } = new();

@@ -1,4 +1,4 @@
-namespace Application.DTOs.Clinic.ClinicRoom;
+namespace Application.DTOs.ClinicRoom;
 
 /// <summary>
 /// Represents a clinic room returned by the API.

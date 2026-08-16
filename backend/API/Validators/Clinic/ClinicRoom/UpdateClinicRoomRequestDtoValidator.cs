@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.ClinicRoom;
+﻿using Application.DTOs.ClinicRoom;
 using FluentValidation;
 
 namespace API.Validators.Clinic.ClinicRoom;

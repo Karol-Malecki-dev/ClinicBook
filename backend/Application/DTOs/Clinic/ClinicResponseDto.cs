@@ -1,12 +1,13 @@
 using Application.DTOs.Other;
 
-namespace Application.DTOs.Clinic.Clinic;
+namespace Application.DTOs.Clinic;
 
 /// <summary>
-/// Contains the clinic fields that can be updated.
+/// Represents clinic data returned by the API.
 /// </summary>
-public sealed class UpdateClinicRequestDto
+public sealed class ClinicResponseDto
 {
+    public Guid Id { get; init; }
     public string Name { get; init; } = string.Empty;
     public AddressDto Address { get; init; } = new();
     public string? PhoneNumber { get; init; }

@@ -1,4 +1,4 @@
-using Application.DTOs.Clinic.Specialization;
+using Application.DTOs.Specialization;
 using Application.Interfaces.Specialization;
 using Domain.Entities.Doctor;
 using Infrastructure.Data;

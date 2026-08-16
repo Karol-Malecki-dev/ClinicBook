@@ -1,6 +1,6 @@
 using Application.DTOs.Other;
 
-namespace Application.DTOs.Clinic.ClinicService;
+namespace Application.DTOs.ClinicService;
 
 /// <summary>
 /// Contains the data required to create a clinic service.

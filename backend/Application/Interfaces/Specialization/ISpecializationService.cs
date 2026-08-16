@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.Specialization;
+﻿using Application.DTOs.Specialization;
 using Shared.Responses;
 
 namespace Application.Interfaces.Specialization;

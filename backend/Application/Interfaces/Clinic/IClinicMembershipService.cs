@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.ClinicMembership;
+﻿using Application.DTOs.ClinicMembership;
 using Shared.Responses;
 
 namespace Application.Interfaces.Clinic;

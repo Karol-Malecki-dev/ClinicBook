@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.Clinic;
+﻿using Application.DTOs.Clinic;
 using Application.DTOs.Other;
 using ClinicEntity = Domain.Entities.Clinic.Clinic;
 

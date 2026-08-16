@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.Specialization;
+﻿using Application.DTOs.Specialization;
 using Domain.Entities.Doctor;
 
 namespace Infrastructure.Mappers.Doctor

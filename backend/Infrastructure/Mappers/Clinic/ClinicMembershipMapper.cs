@@ -1,4 +1,4 @@
-﻿using Application.DTOs.Clinic.ClinicMembership;
+﻿using Application.DTOs.ClinicMembership;
 using Domain.Entities.Clinic;
 
 namespace Infrastructure.Mappers.Clinic
