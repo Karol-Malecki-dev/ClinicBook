@@ -21,7 +21,7 @@ public sealed class CreatePatientProfileRequestDtoValidator : AbstractValidator<
             .WithMessage("Date of birth cannot be in the future.");
 
         RuleFor(request => request.Address)
-            .SetValidator(new API.Validators.AddressDtoValidator())
+            .SetValidator(new AddressDtoValidator())
             .When(request => request.Address is not null);
     }
 }

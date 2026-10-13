@@ -171,6 +171,12 @@ public class ProjectsApiIntegrationTests
         };
 
         dbContext.Projects.Add(project);
+        dbContext.ProjectMembers.Add(new ProjectMember
+        {
+            ProjectId = project.Id,
+            UserId = ownerId,
+            Role = ProjectMemberRole.Owner
+        });
         await dbContext.SaveChangesAsync();
         return project.Id;
     }

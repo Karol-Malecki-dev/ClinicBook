@@ -34,7 +34,7 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<ClinicMembershipResponseDto>.Error(authorization.Value.StatusCode, authorization.Value.Message);
         }
 
-        if (!ClinicAccess.CanManageMembers(request.Role))
+        if (!CanAssignRole(request.Role))
         {
             return ApiResponse<ClinicMembershipResponseDto>.Error(400, "Only the Patient or Doctor role can be assigned.");
         }
@@ -82,7 +82,7 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<bool>.Error(404, "Active clinic membership not found.");
         }
 
-        if (!ClinicAccess.CanManageMembers(membership.Role))
+        if (!CanChangeOrRemoveMembership(membership.Role))
         {
             return ApiResponse<bool>.Error(400, "Owner and ClinicAdministrator memberships cannot be deleted.");
         }
@@ -147,7 +147,7 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<ClinicMembershipResponseDto>.Error(authorization.Value.StatusCode, authorization.Value.Message);
         }
 
-        if (!ClinicAccess.CanManageMembers(request.Role))
+        if (!CanAssignRole(request.Role))
         {
             return ApiResponse<ClinicMembershipResponseDto>.Error(400, "Only the Patient or Doctor role can be assigned.");
         }
@@ -162,6 +162,11 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<ClinicMembershipResponseDto>.Error(404, "Active clinic membership not found.");
         }
 
+        if (!CanChangeOrRemoveMembership(membership.Role))
+        {
+            return ApiResponse<ClinicMembershipResponseDto>.Error(400, "Owner and ClinicAdministrator memberships cannot be changed.");
+        }
+
         membership.ChangeRole(request.Role);
         await _dbContext.SaveChangesAsync();
 
@@ -169,6 +174,12 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             ClinicMembershipMapper.ToResponseDto(membership),
             "Clinic membership updated successfully.");
     }
+
+    private static bool CanAssignRole(ClinicRole role)
+        => role is ClinicRole.Patient or ClinicRole.Doctor;
+
+    private static bool CanChangeOrRemoveMembership(ClinicRole role)
+        => role is not ClinicRole.Owner and not ClinicRole.ClinicAdministrator;
 
     private async Task<(int StatusCode, string Message)?> GetMembershipAuthorizationAsync(
         Guid currentUserId,

@@ -75,7 +75,7 @@ public sealed class DatabaseProjectTaskService : IProjectTaskService
         _dbContext.ProjectTasks.Remove(task); await _dbContext.SaveChangesAsync(); return ApiResponse<bool>.Success(true, "Project task deleted successfully.");
     }
 
-    private Task<bool> HasAccessAsync(Guid userId, Guid projectId) => _dbContext.ProjectMembers.AnyAsync(member => member.ProjectId == projectId && member.UserId == userId);
+    private Task<bool> HasAccessAsync(Guid userId, Guid projectId) => _dbContext.ProjectMembers.AnyAsync(member => member.ProjectId == projectId && member.UserId == userId && !member.Project.IsArchived);
     private Task<bool> IsProjectMemberAsync(Guid projectId, Guid userId) => _dbContext.ProjectMembers.AnyAsync(member => member.ProjectId == projectId && member.UserId == userId);
     private Task<ProjectTask?> GetTaskForProjectAsync(Guid userId, Guid projectId, Guid taskId) => _dbContext.ProjectTasks.FirstOrDefaultAsync(task => task.Id == taskId && task.ProjectId == projectId && task.Project.Members.Any(member => member.UserId == userId));
     private static ProjectTaskDto Map(ProjectTask task) => new() { Id = task.Id, ProjectId = task.ProjectId, Title = task.Title, Description = task.Description, Status = task.Status, Priority = task.Priority, DueDate = task.DueDate, AssignedUserId = task.AssignedUserId, CreatedByUserId = task.CreatedByUserId, CreatedAt = task.CreatedAt, UpdatedAt = task.UpdatedAt };

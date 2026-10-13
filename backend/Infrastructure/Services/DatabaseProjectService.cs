@@ -108,6 +108,16 @@ public sealed class DatabaseProjectService : IProjectService
         if (!await IsOwnerAsync(ownerId, projectId)) return ApiResponse<bool>.Error(404, "Project not found.");
         var member = await _dbContext.ProjectMembers.FirstOrDefaultAsync(item => item.ProjectId == projectId && item.UserId == userId && item.Role != ProjectMemberRole.Owner);
         if (member is null) return ApiResponse<bool>.Error(404, "Project member not found.");
+
+        var assignedTasks = await _dbContext.ProjectTasks
+            .Where(task => task.ProjectId == projectId && task.AssignedUserId == userId)
+            .ToListAsync();
+
+        foreach (var task in assignedTasks)
+        {
+            task.AssignedUserId = null;
+        }
+
         _dbContext.ProjectMembers.Remove(member); await _dbContext.SaveChangesAsync();
         return ApiResponse<bool>.Success(true, "Project member removed successfully.");
     }

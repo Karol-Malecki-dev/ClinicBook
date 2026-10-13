@@ -16,13 +16,19 @@ public sealed class CreateClinicRequestDtoValidator : AbstractValidator<CreateCl
             .SetValidator(new AddressDtoValidator());
 
         RuleFor(request => request.PhoneNumber)
-            .MaximumLength(256);
+            .MaximumLength(256)
+            .Must(phoneNumber => !string.IsNullOrWhiteSpace(phoneNumber))
+            .When(request => request.PhoneNumber is not null);
 
         RuleFor(request => request.PhoneNumber2)
-            .MaximumLength(256);
+            .MaximumLength(256)
+            .Must(phoneNumber => !string.IsNullOrWhiteSpace(phoneNumber))
+            .When(request => request.PhoneNumber2 is not null);
 
         RuleFor(request => request.PhoneNumber3)
-            .MaximumLength(256);
+            .MaximumLength(256)
+            .Must(phoneNumber => !string.IsNullOrWhiteSpace(phoneNumber))
+            .When(request => request.PhoneNumber3 is not null);
 
         RuleFor(request => request.Email)
             .MaximumLength(256);

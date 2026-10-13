@@ -150,7 +150,7 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("PasswordResetRequests", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.Clinic", b =>
+            modelBuilder.Entity("Domain.Entities.Clinic.Clinic", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -192,7 +192,7 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("Clinics", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.ClinicMembership", b =>
+            modelBuilder.Entity("Domain.Entities.Clinic.ClinicMembership", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -219,13 +219,13 @@ namespace Infrastructure.Data.Migrations
 
                     b.HasIndex("ClinicId");
 
-                    b.HasIndex("UserId", "ClinicId", "Role")
+                    b.HasIndex("UserId", "ClinicId")
                         .IsUnique();
 
                     b.ToTable("ClinicMemberships", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.ClinicRoom", b =>
+            modelBuilder.Entity("Domain.Entities.Clinic.ClinicRoom", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -251,7 +251,7 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("ClinicRooms", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.DoctorProfile", b =>
+            modelBuilder.Entity("Domain.Entities.Doctor.DoctorProfile", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -291,7 +291,7 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("DoctorProfiles", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.DoctorSpecialization", b =>
+            modelBuilder.Entity("Domain.Entities.Doctor.DoctorSpecialization", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -315,6 +315,29 @@ namespace Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("DoctorSpecializations", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.Doctor.Specialization", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Specializations", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.JWT.RefreshToken", b =>
@@ -391,7 +414,7 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("RefreshTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.PatientProfile", b =>
+            modelBuilder.Entity("Domain.Entities.Patient.PatientProfile", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -541,29 +564,6 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("ProjectTasks", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Entities.Specialization", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("Specializations", (string)null);
-                });
-
             modelBuilder.Entity("Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -612,7 +612,7 @@ namespace Infrastructure.Data.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Auth.EmailConfirmationToken", b =>
@@ -642,7 +642,7 @@ namespace Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.Clinic", b =>
+            modelBuilder.Entity("Domain.Entities.Clinic.Clinic", b =>
                 {
                     b.OwnsOne("Domain.ValueObjects.Address", "Address", b1 =>
                         {
@@ -689,9 +689,9 @@ namespace Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.ClinicMembership", b =>
+            modelBuilder.Entity("Domain.Entities.Clinic.ClinicMembership", b =>
                 {
-                    b.HasOne("Domain.Entities.Clinic", "Clinic")
+                    b.HasOne("Domain.Entities.Clinic.Clinic", "Clinic")
                         .WithMany("Memberships")
                         .HasForeignKey("ClinicId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -708,9 +708,9 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domain.Entities.ClinicRoom", b =>
+            modelBuilder.Entity("Domain.Entities.Clinic.ClinicRoom", b =>
                 {
-                    b.HasOne("Domain.Entities.Clinic", "Clinic")
+                    b.HasOne("Domain.Entities.Clinic.Clinic", "Clinic")
                         .WithMany("Rooms")
                         .HasForeignKey("ClinicId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -719,26 +719,26 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Clinic");
                 });
 
-            modelBuilder.Entity("Domain.Entities.DoctorProfile", b =>
+            modelBuilder.Entity("Domain.Entities.Doctor.DoctorProfile", b =>
                 {
                     b.HasOne("Domain.Entities.User", "User")
                         .WithOne()
-                        .HasForeignKey("Domain.Entities.DoctorProfile", "UserId")
+                        .HasForeignKey("Domain.Entities.Doctor.DoctorProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domain.Entities.DoctorSpecialization", b =>
+            modelBuilder.Entity("Domain.Entities.Doctor.DoctorSpecialization", b =>
                 {
-                    b.HasOne("Domain.Entities.DoctorProfile", "DoctorProfile")
+                    b.HasOne("Domain.Entities.Doctor.DoctorProfile", "DoctorProfile")
                         .WithMany("DoctorSpecializations")
                         .HasForeignKey("DoctorProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Domain.Entities.Specialization", "Specialization")
+                    b.HasOne("Domain.Entities.Doctor.Specialization", "Specialization")
                         .WithMany("DoctorSpecializations")
                         .HasForeignKey("SpecializationId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -758,11 +758,11 @@ namespace Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Entities.PatientProfile", b =>
+            modelBuilder.Entity("Domain.Entities.Patient.PatientProfile", b =>
                 {
                     b.HasOne("Domain.Entities.User", "User")
                         .WithOne()
-                        .HasForeignKey("Domain.Entities.PatientProfile", "UserId")
+                        .HasForeignKey("Domain.Entities.Patient.PatientProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -866,14 +866,19 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("Domain.Entities.Clinic", b =>
+            modelBuilder.Entity("Domain.Entities.Clinic.Clinic", b =>
                 {
                     b.Navigation("Memberships");
 
                     b.Navigation("Rooms");
                 });
 
-            modelBuilder.Entity("Domain.Entities.DoctorProfile", b =>
+            modelBuilder.Entity("Domain.Entities.Doctor.DoctorProfile", b =>
+                {
+                    b.Navigation("DoctorSpecializations");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Doctor.Specialization", b =>
                 {
                     b.Navigation("DoctorSpecializations");
                 });
@@ -883,11 +888,6 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Members");
 
                     b.Navigation("Tasks");
-                });
-
-            modelBuilder.Entity("Domain.Entities.Specialization", b =>
-                {
-                    b.Navigation("DoctorSpecializations");
                 });
 
             modelBuilder.Entity("Domain.Entities.User", b =>
