@@ -9,7 +9,7 @@ namespace API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SystemAdministrator")]
     public class AdminController : ControllerBase
     {
         private readonly IAdminService _adminService;
@@ -55,7 +55,7 @@ namespace API.Controllers
 
             if (result.StatusCode == 404)
             {
-                _logger.LogWarning("Admin tried to update missing user {UserId}", userId);
+                _logger.LogWarning("SystemAdministrator tried to update missing user {UserId}", userId);
             }
 
             return StatusCode(result.StatusCode, result);
@@ -68,7 +68,7 @@ namespace API.Controllers
 
             if (result.StatusCode == 404)
             {
-                _logger.LogWarning("Admin tried to change role for missing user {UserId}", userId);
+                _logger.LogWarning("SystemAdministrator tried to change role for missing user {UserId}", userId);
             }
 
             return StatusCode(result.StatusCode, result);
@@ -81,7 +81,7 @@ namespace API.Controllers
 
             if (result.StatusCode == 404)
             {
-                _logger.LogWarning("Admin tried to activate missing user {UserId}", userId);
+                _logger.LogWarning("SystemAdministrator tried to activate missing user {UserId}", userId);
             }
 
             return StatusCode(result.StatusCode, result);
@@ -94,7 +94,7 @@ namespace API.Controllers
             
             if (result.StatusCode == 404)
             {
-                _logger.LogWarning("Admin tried to deactivate missing user {UserId}", userId);
+                _logger.LogWarning("SystemAdministrator tried to deactivate missing user {UserId}", userId);
             }
 
             return StatusCode(result.StatusCode, result);
@@ -107,7 +107,7 @@ namespace API.Controllers
 
             if (result.StatusCode == 404)
             {
-                _logger.LogWarning("Admin tried to delete missing user {UserId}", userId);
+                _logger.LogWarning("SystemAdministrator tried to delete missing user {UserId}", userId);
             }
 
             return StatusCode(result.StatusCode, result);

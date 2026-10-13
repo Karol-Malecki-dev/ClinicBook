@@ -25,7 +25,7 @@ namespace Domain.Entities
         /// <summary>Optional URL to user's profile avatar/profile picture</summary>
         public string? AvatarUrl { get; set; }
 
-        /// <summary>User's role determining permissions (Admin, User)</summary>
+        /// <summary>User's role determining permissions (SystemAdministrator, User)</summary>
         public UserRole Role { get; set; }
 
         /// <summary>Indicates whether the user account is active or deactivated</summary>
@@ -42,6 +42,5 @@ namespace Domain.Entities
         public DateTime CreatedAt { get; set; }
 
         public ICollection<ProjectMember> ProjectMemberships { get; set; } = [];
-
     }
 }

@@ -17,7 +17,7 @@ public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<Applicati
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? configuration["DbConnectionString"]
-            ?? "Host=localhost;Port=5432;Database=dotnet-react-starter;Username=postgres;Password=postgres";
+            ?? "Host=localhost;Port=5432;Database=dotnet-react-starter;Username=postgres;Password=postgres"; // to change in future
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         optionsBuilder.UseNpgsql(connectionString, npgsql =>

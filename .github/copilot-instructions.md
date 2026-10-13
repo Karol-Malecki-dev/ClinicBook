@@ -53,6 +53,7 @@
 - Odpowiedzi powinny wspierać rozwój wiedzy użytkownika w kierunku junior/mid developera w obszarach: ASP.NET, React, TypeScript, C#, PostgreSQL.
 - Użytkownik uczy się C# od około 1.5 roku, ASP.NET od około 6 miesięcy, łączy naukę z studiami i traktuje ten projekt jako pierwszy bardziej zaawansowany projekt z rozbudowaną architekturą.
 - Użytkownik chce uczyć się prawidłowych wzorców, nazewnictwa i architektury, a nie tylko szybko dowozić funkcje.
+- Użytkownik chce samodzielnie implementować API i trudniejsze elementy projektu dla nauki, a asystenta używać głównie do analizy, review, debugowania i szybszych prac rutynowych.
 
 ### P2.2 Preferowany sposób odpowiedzi
 - Domyślnie najpierw wyjaśnić problem, zaproponować plan lub kroki działania i nie podawać pełnego gotowego kodu, jeśli nie jest to konieczne.
@@ -65,6 +66,7 @@
 - Użytkownik preferuje architekturę z osobnymi modelami domenowymi, value objects i result, oraz chce rozwijać projekt w kierunku czystszego i bardziej przyszłościowego modelu domenowego.
 - Użytkownik preferuje modelowanie słownikowych danych w bazie jako osobne tabelki dla czytelności, zamiast samych enumów, gdy ma to sens biznesowy.
 - W odpowiedziach warto dokładnie i precyzyjnie wyjaśniać, dlaczego coś warto nazywać w dany sposób oraz dlaczego dana struktura lub wzorzec są lepsze edukacyjnie i technicznie.
+- Użytkownik preferuje przechowywanie specjalizacji lekarza jako własnego tekstu wpisywanego przez użytkownika zamiast zamkniętego katalogu wszystkich możliwych specjalizacji oraz rozważa utrzymanie `User` i `UserAccount` jako osobnych modeli, aby ograniczyć przyszłe zmiany istniejącej encji `User`; należy oceniać to pod kątem spójności domeny, migracji i bezpieczeństwa.
 
 ### P2.4 Dokumentacja i komentarze
 - Dodawaj przejrzyste komentarze i dokumentację XML `///` po angielsku w aktualnie edytowanych plikach, szczególnie dla DTO, endpointów i kontraktów request/response, aby łatwiej rozumieć przekazywane dane.
@@ -78,3 +80,8 @@
 
 ### P2.7 Uwagi o błędach
 - Uwagi o błędach powinny odnosić się do aktualnego kodu i po poprawkach mają być ponownie zweryfikowane precyzyjnie.
+- Użytkownik oczekuje, że będę dokładnie sprawdzał jego zmiany w kodzie, wskazywał błędy i ryzyka oraz upewniał się co do modelu danych, dostosowując wyjaśnienia do poziomu juniora zamiast bezkrytycznie akceptować implementację.
+- Przy ocenie zmian jasno wskazywać, co faktycznie zostało zmienione i czy ta zmiana jest poprawna, nie zakładając, że kod był już zmieniony.
+
+### P2.8 Standardowe DTO
+- Użytkownik rozumie i potrafi samodzielnie pisać standardowe DTO; preferuje poświęcać czas na trudniejsze elementy zamiast przepisywać mechanicznie znany kod.
