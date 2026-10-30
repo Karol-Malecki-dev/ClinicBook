@@ -211,6 +211,11 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<ClinicMembershipResponseDto>.Error(404, "Active clinic membership not found.");
         }
 
+        if (!CanChangeOrRemoveMembership(membership.Role))
+        {
+            return ApiResponse<ClinicMembershipResponseDto>.Error(400, "Owner and ClinicAdministrator memberships cannot be changed.");
+        }
+
         membership.ChangeRole(request.Role);
         await _dbContext.SaveChangesAsync();
 
@@ -218,6 +223,17 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             ClinicMembershipMapper.ToResponseDto(membership),
             "Clinic membership updated successfully.");
     }
+
+    private static bool IsAssignableRole(ClinicRole role)
+    {
+        return role is ClinicRole.Patient
+            or ClinicRole.Doctor
+            or ClinicRole.Receptionist
+            or ClinicRole.ClinicAdministrator;
+    }
+
+    private static bool CanChangeOrRemoveMembership(ClinicRole role)
+        => role is not ClinicRole.Owner and not ClinicRole.ClinicAdministrator;
 
     private async Task<(int StatusCode, string Message)?> GetMembershipAuthorizationAsync(
         Guid currentUserId,
@@ -259,11 +275,4 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             && membership.Role == ClinicRole.Owner);
     }
 
-    private static bool IsAssignableRole(ClinicRole role)
-    {
-        return role is ClinicRole.Patient
-            or ClinicRole.Doctor
-            or ClinicRole.Receptionist
-            or ClinicRole.ClinicAdministrator;
-    }
 }

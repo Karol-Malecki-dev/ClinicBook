@@ -65,6 +65,16 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
         var clinicId = clinic.Data.Id;
         Assert.Equal("Europe/Warsaw", clinic.Data.TimeZoneId);
 
+        SetBearerToken(ownerTokens.AccessToken);
+        var membershipResponse = await _client.PostAsJsonAsync(
+            $"/api/clinics/{clinicId}/members",
+            new AddClinicMembershipRequestDto
+            {
+                Email = doctorEmail,
+                Role = ClinicRole.Doctor
+            });
+        Assert.Equal(HttpStatusCode.Created, membershipResponse.StatusCode);
+
         var doctorTokens = await LoginAsync(doctorEmail);
         SetBearerToken(doctorTokens.AccessToken);
 
@@ -76,16 +86,6 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
                 LastName = "Nowak"
             });
         Assert.Equal(HttpStatusCode.Created, profileResponse.StatusCode);
-
-        SetBearerToken(ownerTokens.AccessToken);
-        var membershipResponse = await _client.PostAsJsonAsync(
-            $"/api/clinics/{clinicId}/members",
-            new AddClinicMembershipRequestDto
-            {
-                Email = doctorEmail,
-                Role = ClinicRole.Doctor
-            });
-        Assert.Equal(HttpStatusCode.Created, membershipResponse.StatusCode);
 
         SetBearerToken(doctorTokens.AccessToken);
         var scheduleResponse = await _client.PostAsJsonAsync(
@@ -171,26 +171,13 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
     [Fact]
     public async Task User_cannot_read_another_doctors_private_profile()
     {
-        const string doctorEmail = "profile.doctor@example.com";
+        var scenario = await CreateClinicScenarioAsync("private-profile");
         const string otherEmail = "profile.other@example.com";
-        var doctorId = await SeedUserAsync(doctorEmail, "Private Doctor");
         await SeedUserAsync(otherEmail, "Other User");
-
-        var doctorTokens = await LoginAsync(doctorEmail);
-        SetBearerToken(doctorTokens.AccessToken);
-        var profileResponse = await _client.PostAsJsonAsync(
-            $"/api/doctors/{doctorId}/profile",
-            new CreateDoctorProfileRequestDto
-            {
-                FirstName = "Private",
-                LastName = "Doctor",
-                PhoneNumber = "555-0100"
-            });
-        Assert.Equal(HttpStatusCode.Created, profileResponse.StatusCode);
 
         var otherTokens = await LoginAsync(otherEmail);
         SetBearerToken(otherTokens.AccessToken);
-        var readResponse = await _client.GetAsync($"/api/doctors/{doctorId}/profile");
+        var readResponse = await _client.GetAsync($"/api/doctors/{scenario.DoctorUserId}/profile");
 
         Assert.Equal(HttpStatusCode.Forbidden, readResponse.StatusCode);
     }
@@ -814,6 +801,16 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
             .ReadFromJsonAsync<ApiResponse<ClinicResponseDto>>();
         Assert.NotNull(createdClinic?.Data);
 
+        SetBearerToken(ownerTokens.AccessToken);
+        var membershipResponse = await _client.PostAsJsonAsync(
+            $"/api/clinics/{createdClinic.Data.Id}/members",
+            new AddClinicMembershipRequestDto
+            {
+                Email = doctorEmail,
+                Role = ClinicRole.Doctor
+            });
+        Assert.Equal(HttpStatusCode.Created, membershipResponse.StatusCode);
+
         SetBearerToken(doctorTokens.AccessToken);
         var profileResponse = await _client.PostAsJsonAsync(
             $"/api/doctors/{doctorId}/profile",
@@ -827,16 +824,6 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
         var profile = await profileResponse.Content
             .ReadFromJsonAsync<ApiResponse<DoctorProfileResponseDto>>();
         Assert.NotNull(profile?.Data);
-
-        SetBearerToken(ownerTokens.AccessToken);
-        var membershipResponse = await _client.PostAsJsonAsync(
-            $"/api/clinics/{createdClinic.Data.Id}/members",
-            new AddClinicMembershipRequestDto
-            {
-                Email = doctorEmail,
-                Role = ClinicRole.Doctor
-            });
-        Assert.Equal(HttpStatusCode.Created, membershipResponse.StatusCode);
 
         return new ClinicTestScenario(
             createdClinic.Data.Id,
@@ -859,6 +846,16 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
         var userId = await SeedUserAsync(email, $"Doctor {suffix}");
         var tokens = await LoginAsync(email);
 
+        SetBearerToken(scenario.OwnerTokens.AccessToken);
+        var membershipResponse = await _client.PostAsJsonAsync(
+            $"/api/clinics/{scenario.ClinicId}/members",
+            new AddClinicMembershipRequestDto
+            {
+                Email = email,
+                Role = ClinicRole.Doctor
+            });
+        Assert.Equal(HttpStatusCode.Created, membershipResponse.StatusCode);
+
         SetBearerToken(tokens.AccessToken);
         var profileResponse = await _client.PostAsJsonAsync(
             $"/api/doctors/{userId}/profile",
@@ -871,16 +868,6 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
         var profile = await profileResponse.Content
             .ReadFromJsonAsync<ApiResponse<DoctorProfileResponseDto>>();
         Assert.NotNull(profile?.Data);
-
-        SetBearerToken(scenario.OwnerTokens.AccessToken);
-        var membershipResponse = await _client.PostAsJsonAsync(
-            $"/api/clinics/{scenario.ClinicId}/members",
-            new AddClinicMembershipRequestDto
-            {
-                Email = email,
-                Role = ClinicRole.Doctor
-            });
-        Assert.Equal(HttpStatusCode.Created, membershipResponse.StatusCode);
 
         return new DoctorTestScenario(userId, profile.Data.Id, tokens);
     }

@@ -7,16 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Mappings\**" />
-    <EmbeddedResource Remove="Mappings\**" />
-    <None Remove="Mappings\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Folder Include="Exceptions\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.2.0" />
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.15" />
     <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.15" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.17.0" />

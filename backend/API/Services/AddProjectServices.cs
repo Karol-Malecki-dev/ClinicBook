@@ -1,11 +1,13 @@
 ﻿using API.Configurations;
 using API.Filters;
+using Application.Mappings;
 using Application.Interfaces;
 using Application.Interfaces.Clinic;
 using Application.Interfaces.Doctor;
 using Application.Interfaces.Patient;
 using Application.Interfaces.Specialization;
 using Application.Services;
+using AutoMapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Domain.Interfaces;
@@ -33,6 +35,11 @@ namespace API.Services
         /// </summary>
         public static IServiceCollection AddProjectServices(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddAutoMapper(configuration =>
+            {
+                configuration.AddMaps(typeof(AutoMapperProfile).Assembly);
+            });
+
             services.AddApiPipelineServices();
             services.AddApplicationOptions(configuration);
             services.AddPersistence(configuration);

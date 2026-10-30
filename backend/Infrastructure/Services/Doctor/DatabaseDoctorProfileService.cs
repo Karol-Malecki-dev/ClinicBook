@@ -1,6 +1,7 @@
 using Application.DTOs.Doctor.DoctorProfile;
 using Application.Interfaces.Doctor;
 using Domain.Entities.Doctor;
+using Domain.Enums;
 using Infrastructure.Data;
 using Infrastructure.Mappers.Doctor;
 using Microsoft.EntityFrameworkCore;
@@ -65,7 +66,6 @@ public sealed class DatabaseDoctorProfileService : IDoctorProfileService
                 403,
                 "A user can create only their own doctor profile.");
         }
-
         var userExists = await _dbContext.Users
             .AnyAsync(user => user.Id == doctorUserId && user.IsActive);
 
@@ -74,6 +74,19 @@ public sealed class DatabaseDoctorProfileService : IDoctorProfileService
             return ApiResponse<DoctorProfileResponseDto>.Error(
                 404,
                 "Doctor user not found or inactive.");
+        }
+
+        var hasActiveDoctorMembership = await _dbContext.ClinicMemberships
+            .AnyAsync(membership =>
+                membership.UserId == doctorUserId &&
+                membership.IsActive &&
+                membership.Role == ClinicRole.Doctor);
+
+        if (!hasActiveDoctorMembership)
+        {
+            return ApiResponse<DoctorProfileResponseDto>.Error(
+                403,
+                "An active doctor clinic membership is required to create a doctor profile.");
         }
 
         var profileExists = await _dbContext.DoctorProfiles
