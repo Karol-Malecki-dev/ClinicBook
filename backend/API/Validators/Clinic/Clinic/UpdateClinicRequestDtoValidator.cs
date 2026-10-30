@@ -1,4 +1,5 @@
 ﻿using Application.DTOs.Clinic;
+using API.Validators.Clinic;
 using FluentValidation;
 
 namespace API.Validators.Clinic.Clinic;
@@ -40,6 +41,12 @@ public sealed class UpdateClinicRequestDtoValidator : AbstractValidator<UpdateCl
 
         RuleFor(request => request.CloseTime)
             .GreaterThan(request => request.OpenTime);
+
+        RuleFor(request => request.TimeZoneId)
+            .MaximumLength(100)
+            .Must(ClinicTimeZoneValidation.IsSupported)
+            .When(request => !string.IsNullOrWhiteSpace(request.TimeZoneId))
+            .WithMessage("A supported clinic time zone is required.");
     }
 
 }

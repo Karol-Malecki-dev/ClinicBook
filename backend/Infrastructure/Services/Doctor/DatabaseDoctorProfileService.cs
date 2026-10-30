@@ -28,6 +28,13 @@ public sealed class DatabaseDoctorProfileService : IDoctorProfileService
             return validationError;
         }
 
+        if (currentUserId != doctorUserId)
+        {
+            return ApiResponse<DoctorProfileResponseDto>.Error(
+                403,
+                "A user can view only their own doctor profile.");
+        }
+
         var profile = await _dbContext.DoctorProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.UserId == doctorUserId && item.IsActive);

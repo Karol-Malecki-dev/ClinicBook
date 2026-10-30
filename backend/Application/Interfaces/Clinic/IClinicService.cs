@@ -8,6 +8,9 @@ namespace Application.Interfaces.Clinic;
 /// </summary>
 public interface IClinicService
 {
+    Task<ApiResponse<List<ClinicResponseDto>>> GetDiscoverableClinicsAsync(
+        Guid currentUserId);
+
     Task<ApiResponse<List<ClinicResponseDto>>> GetAccessibleClinicsAsync(
         Guid currentUserId);
 

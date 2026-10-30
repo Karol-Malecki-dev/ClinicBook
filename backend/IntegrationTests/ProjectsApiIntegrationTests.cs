@@ -53,6 +53,7 @@ public class ProjectsApiIntegrationTests
         Assert.Equal(ownerId, created.Data.OwnerId);
         Assert.Equal("Website redesign", created.Data.Name);
         Assert.False(created.Data.IsArchived);
+        Assert.Equal(ProjectMemberRole.Owner, created.Data.CurrentUserRole);
 
         var listResponse = await _client.GetAsync("/api/projects");
         listResponse.EnsureSuccessStatusCode();
@@ -61,6 +62,7 @@ public class ProjectsApiIntegrationTests
         Assert.NotNull(projects?.Data);
         var project = Assert.Single(projects.Data);
         Assert.Equal("Website redesign", project.Name);
+        Assert.Equal(ProjectMemberRole.Owner, project.CurrentUserRole);
     }
 
     [Fact]
@@ -92,6 +94,7 @@ public class ProjectsApiIntegrationTests
         archivedProjectDetailsResponse.EnsureSuccessStatusCode();
         var archivedProject = await archivedProjectDetailsResponse.Content.ReadFromJsonAsync<ApiResponse<ProjectDto>>();
         Assert.True(archivedProject?.Data?.IsArchived);
+        Assert.Equal(ProjectMemberRole.Owner, archivedProject?.Data?.CurrentUserRole);
 
         var activeProjectsResponse = await _client.GetAsync("/api/projects");
         activeProjectsResponse.EnsureSuccessStatusCode();
@@ -103,6 +106,7 @@ public class ProjectsApiIntegrationTests
         var allProjects = await allProjectsResponse.Content.ReadFromJsonAsync<ApiResponse<List<ProjectDto>>>();
         Assert.Single(allProjects?.Data ?? []);
         Assert.True(allProjects!.Data![0].IsArchived);
+        Assert.Equal(ProjectMemberRole.Owner, allProjects.Data[0].CurrentUserRole);
         Assert.NotEqual(otherUserId, allProjects.Data[0].OwnerId);
     }
 
@@ -171,6 +175,12 @@ public class ProjectsApiIntegrationTests
         };
 
         dbContext.Projects.Add(project);
+        dbContext.ProjectMembers.Add(new ProjectMember
+        {
+            ProjectId = project.Id,
+            UserId = ownerId,
+            Role = ProjectMemberRole.Owner
+        });
         await dbContext.SaveChangesAsync();
         return project.Id;
     }

@@ -1,12 +1,19 @@
 ﻿using API.Configurations;
 using API.Filters;
 using Application.Interfaces;
+using Application.Interfaces.Clinic;
+using Application.Interfaces.Doctor;
+using Application.Interfaces.Patient;
+using Application.Interfaces.Specialization;
 using Application.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Domain.Interfaces;
 using Infrastructure.Data;
 using Infrastructure.Services;
+using Infrastructure.Services.Clinic;
+using Infrastructure.Services.Doctor;
+using Infrastructure.Services.Patient;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -149,6 +156,15 @@ namespace API.Services
             services.AddScoped<IAdminService, DatabaseAdminService>();
             services.AddScoped<IProjectService, DatabaseProjectService>();
             services.AddScoped<IProjectTaskService, DatabaseProjectTaskService>();
+            services.AddScoped<IClinicService, DatabaseClinicService>();
+            services.AddScoped<IClinicRoomService, DatabaseClinicRoomService>();
+            services.AddScoped<IClinicMembershipService, DatabaseClinicMembershipService>();
+            services.AddScoped<IDoctorAvailabilityService, DatabaseDoctorAvailabilityService>();
+            services.AddScoped<IAppointmentService, DatabaseAppointmentService>();
+            services.AddScoped<IDoctorProfileService, DatabaseDoctorProfileService>();
+            services.AddScoped<IDoctorSpecializationService, DatabaseDoctorSpecializationService>();
+            services.AddScoped<IPatientProfileService, DatabasePatientProfileService>();
+            services.AddScoped<ISpecializationService, DatabaseSpecializationService>();
 
             services.AddScoped<LoggingAccountEmailSender>();
             services.AddScoped<MailKitAccountEmailSender>();

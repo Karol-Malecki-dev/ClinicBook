@@ -9,6 +9,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 
@@ -17,8 +18,32 @@ namespace IntegrationTests;
 public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = $"IntegrationTestDb_{Guid.NewGuid()}";
+    private readonly string? _postgresTestConnectionString;
 
     public TestAccountEmailSender EmailSender { get; } = new();
+
+    public CustomWebApplicationFactory()
+    {
+        var postgresConnectionString = Environment.GetEnvironmentVariable(
+            "CLINICBOOK_TEST_POSTGRES_CONNECTION_STRING");
+        if (string.IsNullOrWhiteSpace(postgresConnectionString))
+        {
+            return;
+        }
+
+        var connectionStringBuilder = new NpgsqlConnectionStringBuilder(postgresConnectionString);
+        var databaseName = connectionStringBuilder.Database ?? string.Empty;
+        if (connectionStringBuilder.Host is not ("localhost" or "127.0.0.1" or "::1")
+            || !databaseName.StartsWith(
+                "clinicbook_v1_test_",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "PostgreSQL integration tests require a loopback connection to a clinicbook_v1_test_* database.");
+        }
+
+        _postgresTestConnectionString = connectionStringBuilder.ConnectionString;
+    }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -73,6 +98,13 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
                 ["UiFeatures:EmailFeatureSectionsEnabled"] = "true"
             };
 
+            if (_postgresTestConnectionString is not null)
+            {
+                settings["ConnectionStrings:DefaultConnection"] = _postgresTestConnectionString;
+                settings["DbConnectionString"] = _postgresTestConnectionString;
+                settings["DefaultConnection"] = _postgresTestConnectionString;
+            }
+
             configBuilder.AddInMemoryCollection(settings);
         });
 
@@ -85,7 +117,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>
 
             services.AddDbContext<ApplicationDbContext>(options =>
             {
-                options.UseInMemoryDatabase(_databaseName);
+                if (_postgresTestConnectionString is null)
+                {
+                    options.UseInMemoryDatabase(_databaseName);
+                }
+                else
+                {
+                    options.UseNpgsql(
+                        _postgresTestConnectionString,
+                        npgsql => npgsql.MigrationsAssembly(
+                            typeof(ApplicationDbContext).Assembly.FullName));
+                }
             });
 
             services.RemoveAll<IAccountEmailSender>();

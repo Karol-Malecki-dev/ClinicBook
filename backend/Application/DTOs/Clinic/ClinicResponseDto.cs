@@ -1,4 +1,5 @@
 using Application.DTOs.Other;
+using Domain.Enums;
 
 namespace Application.DTOs.Clinic;
 
@@ -17,4 +18,6 @@ public sealed class ClinicResponseDto
     public string? Website { get; init; }
     public TimeOnly OpenTime { get; init; }
     public TimeOnly CloseTime { get; init; }
+    public string TimeZoneId { get; init; } = Domain.Entities.Clinic.Clinic.DefaultTimeZoneId;
+    public ClinicRole? MembershipRole { get; init; }
 }

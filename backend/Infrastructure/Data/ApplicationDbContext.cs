@@ -30,6 +30,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<Clinic> Clinics => Set<Clinic>();
     public DbSet<ClinicMembership> ClinicMemberships => Set<ClinicMembership>();
     public DbSet<ClinicRoom> ClinicRooms => Set<ClinicRoom>();
+    public DbSet<DoctorWeeklyAvailability> DoctorWeeklyAvailabilities => Set<DoctorWeeklyAvailability>();
+    public DbSet<Appointment> Appointments => Set<Appointment>();
     public DbSet<DoctorProfile> DoctorProfiles => Set<DoctorProfile>();
     public DbSet<DoctorSpecialization> DoctorSpecializations => Set<DoctorSpecialization>();
     public DbSet<PatientProfile> PatientProfiles => Set<PatientProfile>();

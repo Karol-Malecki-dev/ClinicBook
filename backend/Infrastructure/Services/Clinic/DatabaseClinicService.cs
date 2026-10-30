@@ -22,6 +22,25 @@ public sealed class DatabaseClinicService : IClinicService
         _dbContext = dbContext;
     }
 
+    public async Task<ApiResponse<List<ClinicResponseDto>>> GetDiscoverableClinicsAsync(
+        Guid currentUserId)
+    {
+        var userIsActive = await _dbContext.Users
+            .AnyAsync(user => user.Id == currentUserId && user.IsActive);
+        if (!userIsActive)
+        {
+            return ApiResponse<List<ClinicResponseDto>>.Error(401, "User not authenticated.");
+        }
+
+        var clinics = await _dbContext.Clinics
+            .AsNoTracking()
+            .OrderBy(clinic => clinic.Name)
+            .ToListAsync();
+
+        return ApiResponse<List<ClinicResponseDto>>.Success(
+            clinics.Select(clinic => ClinicMapper.ToResponseDto(clinic)).ToList());
+    }
+
     public async Task<ApiResponse<List<ClinicResponseDto>>> GetAccessibleClinicsAsync(
         Guid currentUserId)
     {
@@ -31,11 +50,17 @@ public sealed class DatabaseClinicService : IClinicService
                 membership.UserId == currentUserId
                 && membership.IsActive
                 && membership.User.IsActive))
+            .Include(clinic => clinic.Memberships.Where(membership =>
+                membership.UserId == currentUserId
+                && membership.IsActive
+                && membership.User.IsActive))
             .OrderBy(clinic => clinic.Name)
             .ToListAsync();
 
         var response = clinics
-            .Select(ClinicMapper.ToResponseDto)
+            .Select(clinic => ClinicMapper.ToResponseDto(
+                clinic,
+                clinic.Memberships.FirstOrDefault()?.Role))
             .ToList();
 
         return ApiResponse<List<ClinicResponseDto>>.Success(response);
@@ -75,7 +100,8 @@ public sealed class DatabaseClinicService : IClinicService
             request.Name,
             AddressMapper.ToAddress(request.Address),
             request.OpenTime,
-            request.CloseTime);
+            request.CloseTime,
+            request.TimeZoneId);
 
         clinic.UpdateDetails(
             request.Name,
@@ -86,7 +112,8 @@ public sealed class DatabaseClinicService : IClinicService
             request.PhoneNumber2,
             request.PhoneNumber3,
             request.Email,
-            request.Website);
+            request.Website,
+            request.TimeZoneId);
 
         _dbContext.Clinics.Add(clinic);
         _dbContext.ClinicMemberships.Add(
@@ -128,6 +155,26 @@ public sealed class DatabaseClinicService : IClinicService
             return ApiResponse<ClinicResponseDto>.Error(404, "Clinic not found");
         }
 
+        var scheduleOutsideNewHours = await _dbContext.DoctorWeeklyAvailabilities.AnyAsync(
+            availability => availability.ClinicId == clinicId
+                && (availability.StartTime < request.OpenTime
+                    || availability.EndTime > request.CloseTime));
+        if (scheduleOutsideNewHours)
+        {
+            return ApiResponse<ClinicResponseDto>.Error(
+                409,
+                "Clinic hours cannot be changed while doctor availability falls outside the new hours.");
+        }
+
+        if (request.TimeZoneId is not null
+            && !string.Equals(request.TimeZoneId, clinic.TimeZoneId, StringComparison.Ordinal)
+            && await _dbContext.Appointments.AnyAsync(appointment => appointment.ClinicId == clinicId))
+        {
+            return ApiResponse<ClinicResponseDto>.Error(
+                409,
+                "Clinic time zone cannot be changed after an appointment has been created.");
+        }
+
         clinic.UpdateDetails(
             request.Name,
             AddressMapper.ToAddress(request.Address),
@@ -137,7 +184,8 @@ public sealed class DatabaseClinicService : IClinicService
             request.PhoneNumber2,
             request.PhoneNumber3,
             request.Email,
-            request.Website);
+            request.Website,
+            request.TimeZoneId);
 
         await _dbContext.SaveChangesAsync();
         return ApiResponse<ClinicResponseDto>.Success(ClinicMapper.ToResponseDto(clinic));

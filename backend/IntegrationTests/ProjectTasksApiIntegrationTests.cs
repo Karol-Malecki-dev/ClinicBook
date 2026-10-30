@@ -105,12 +105,21 @@ public class ProjectTasksApiIntegrationTests
     }
 
     [Fact]
-    public async Task User_cannot_create_tasks_in_an_archived_project()
+    public async Task Archived_project_rejects_all_task_operations()
     {
         var ownerId = await SeedUserAsync("task.archived-owner@example.com", "password123", "Archived Task Owner");
         var projectId = await SeedProjectAsync(ownerId, "Archived task project");
         var tokens = await LoginAsync("task.archived-owner@example.com", "password123");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
+
+        var taskCreateResponse = await _client.PostAsJsonAsync($"/api/projects/{projectId}/tasks", new
+        {
+            Title = "Task before archive"
+        });
+        Assert.Equal(HttpStatusCode.Created, taskCreateResponse.StatusCode);
+        var taskResult = await taskCreateResponse.Content.ReadFromJsonAsync<ApiResponse<ProjectTaskDto>>();
+        Assert.NotNull(taskResult?.Data);
+        var taskId = taskResult.Data.Id;
 
         var archiveResponse = await _client.DeleteAsync($"/api/projects/{projectId}");
         archiveResponse.EnsureSuccessStatusCode();
@@ -119,8 +128,25 @@ public class ProjectTasksApiIntegrationTests
         {
             Title = "Task in archived project"
         });
+        var listResponse = await _client.GetAsync($"/api/projects/{projectId}/tasks");
+        var getResponse = await _client.GetAsync($"/api/projects/{projectId}/tasks/{taskId}");
+        var updateResponse = await _client.PutAsJsonAsync($"/api/projects/{projectId}/tasks/{taskId}", new
+        {
+            Title = "Update in archived project",
+            Priority = ProjectTaskPriority.Normal
+        });
+        var statusResponse = await _client.PatchAsJsonAsync($"/api/projects/{projectId}/tasks/{taskId}/status", new
+        {
+            Status = ProjectTaskStatus.Done
+        });
+        var deleteResponse = await _client.DeleteAsync($"/api/projects/{projectId}/tasks/{taskId}");
 
         Assert.Equal(HttpStatusCode.NotFound, createResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, listResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, getResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, updateResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, statusResponse.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, deleteResponse.StatusCode);
     }
 
     [Fact]
@@ -184,6 +210,8 @@ public class ProjectTasksApiIntegrationTests
         var memberId = await SeedUserAsync("assignment.remove-member@example.com", "password123", "Removal Member");
         var projectId = await SeedProjectAsync(ownerId, "Removal project");
         await SeedProjectMemberAsync(projectId, memberId);
+        var otherProjectId = await SeedProjectAsync(ownerId, "Other removal project");
+        await SeedProjectMemberAsync(otherProjectId, memberId);
 
         var tokens = await LoginAsync("assignment.remove-owner@example.com", "password123");
         _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", tokens.AccessToken);
@@ -198,6 +226,15 @@ public class ProjectTasksApiIntegrationTests
         Assert.NotNull(created?.Data);
         Assert.Equal(memberId, created.Data.AssignedUserId);
 
+        var otherProjectCreateResponse = await _client.PostAsJsonAsync(
+            $"/api/projects/{otherProjectId}/tasks",
+            new
+            {
+                Title = "Assignment in another project",
+                AssignedUserId = memberId
+            });
+        otherProjectCreateResponse.EnsureSuccessStatusCode();
+
         var removeResponse = await _client.DeleteAsync($"/api/projects/{projectId}/members/{memberId}");
         removeResponse.EnsureSuccessStatusCode();
 
@@ -208,6 +245,13 @@ public class ProjectTasksApiIntegrationTests
         Assert.Equal(1, tasks.Data.TotalCount);
         var task = Assert.Single(tasks.Data.Items);
         Assert.Null(task.AssignedUserId);
+
+        var otherProjectTasksResponse = await _client.GetAsync($"/api/projects/{otherProjectId}/tasks");
+        otherProjectTasksResponse.EnsureSuccessStatusCode();
+        var otherProjectTasks = await otherProjectTasksResponse.Content
+            .ReadFromJsonAsync<ApiResponse<PagedResult<ProjectTaskDto>>>();
+        var otherProjectTask = Assert.Single(otherProjectTasks?.Data?.Items ?? []);
+        Assert.Equal(memberId, otherProjectTask.AssignedUserId);
     }
 
     private async Task<AuthTokenResponse> LoginAsync(string email, string password)

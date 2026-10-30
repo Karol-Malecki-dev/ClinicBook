@@ -1,12 +1,15 @@
 ﻿using Application.DTOs.Clinic;
 using Application.DTOs.Other;
+using Domain.Enums;
 using ClinicEntity = Domain.Entities.Clinic.Clinic;
 
 namespace Infrastructure.Mappers.Clinic
 {
     internal static class ClinicMapper
     {
-        internal static ClinicResponseDto ToResponseDto(ClinicEntity clinic)
+        internal static ClinicResponseDto ToResponseDto(
+            ClinicEntity clinic,
+            ClinicRole? membershipRole = null)
         {
             ArgumentNullException.ThrowIfNull(clinic, nameof(clinic));
 
@@ -22,7 +25,8 @@ namespace Infrastructure.Mappers.Clinic
                 Website = clinic.Website,
                 OpenTime = clinic.OpenTime,
                 CloseTime = clinic.CloseTime,
-
+                TimeZoneId = clinic.TimeZoneId,
+                MembershipRole = membershipRole,
             };
         }
     }

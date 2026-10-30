@@ -8,5 +8,6 @@ namespace Application.DTOs.ClinicMembership;
 public sealed class AddClinicMembershipRequestDto
 {
     public Guid UserId { get; init; }
+    public string? Email { get; init; }
     public ClinicRole Role { get; init; }
 }
