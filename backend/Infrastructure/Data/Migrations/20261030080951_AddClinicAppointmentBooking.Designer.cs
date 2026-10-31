@@ -337,7 +337,7 @@ namespace Infrastructure.Data.Migrations
 
                     b.HasIndex("ClinicId", "DoctorProfileId", "DayOfWeek", "StartTime")
                         .IsUnique()
-                        .HasDatabaseName("IX_DoctorWeeklyAvailabilities_ClinicId_DoctorProfileId_DayOfWeek_StartTime");
+                        .HasDatabaseName("IX_DoctorAvail_Clinic_Doctor_Day_Start");
 
                     b.ToTable("DoctorWeeklyAvailabilities", (string)null);
                 });

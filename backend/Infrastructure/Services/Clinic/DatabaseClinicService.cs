@@ -147,6 +147,8 @@ public sealed class DatabaseClinicService : IClinicService
             return ApiResponse<ClinicResponseDto>.Error(403, "You are not allowed to update this clinic");
         }
 
+        await using var transaction = await ClinicTransactionLock.BeginAsync(_dbContext, clinicId);
+
         var clinic = await _dbContext.Clinics.FirstOrDefaultAsync(
             candidate => candidate.Id == clinicId);
 
@@ -188,6 +190,11 @@ public sealed class DatabaseClinicService : IClinicService
             request.TimeZoneId);
 
         await _dbContext.SaveChangesAsync();
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
+
         return ApiResponse<ClinicResponseDto>.Success(ClinicMapper.ToResponseDto(clinic));
     }
 }

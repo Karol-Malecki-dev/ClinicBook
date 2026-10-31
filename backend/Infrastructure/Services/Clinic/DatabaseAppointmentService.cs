@@ -43,12 +43,13 @@ public sealed class DatabaseAppointmentService : IAppointmentService
             return ApiResponse<AppointmentResponseDto>.Error(401, "User not authenticated.");
         }
 
-        await using var transaction = _dbContext.Database.IsRelational()
-            ? await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable)
-            : null;
-
         try
         {
+            await using var transaction = await ClinicTransactionLock.BeginAsync(
+                _dbContext,
+                clinicId,
+                IsolationLevel.Serializable);
+
             var clinic = await _dbContext.Clinics.FirstOrDefaultAsync(item => item.Id == clinicId);
             if (clinic is null)
             {

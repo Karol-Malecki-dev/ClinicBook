@@ -48,6 +48,14 @@ function response<T>(data: T): ApiResponse<T> {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 const clinic: ClinicDto = {
   id: 'clinic-1',
   name: 'Centrum Medyczne',
@@ -197,6 +205,71 @@ describe('ClinicSchedule page', () => {
       });
     });
     expect(await screen.findByRole('status')).toHaveTextContent(/Profil lekarza został utworzony/);
+    await waitFor(() => {
+      expect(mockedClinicApi.getDoctors).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('ignores doctor responses for a previous clinic selection', async () => {
+    const previousDoctorsRequest = deferred<ApiResponse<ClinicDoctorDto[]>>();
+    const secondClinic: ClinicDto = {
+      ...clinic,
+      id: 'clinic-2',
+      name: 'Druga klinika',
+    };
+    const secondDoctor: ClinicDoctorDto = {
+      ...doctor,
+      userId: 'doctor-2',
+      firstName: 'Piotr',
+      lastName: 'Kowalski',
+    };
+    mockedClinicApi.getMyClinics.mockResolvedValue(response([clinic, secondClinic]));
+    mockedClinicApi.getDoctors.mockImplementation((clinicId) =>
+      clinicId === clinic.id ? previousDoctorsRequest.promise : Promise.resolve(response([secondDoctor])));
+
+    render(<ClinicSchedule />);
+
+    await waitFor(() => {
+      expect(mockedClinicApi.getDoctors).toHaveBeenCalledWith(clinic.id);
+    });
+    fireEvent.change(await screen.findByLabelText('Klinika'), {
+      target: { value: secondClinic.id },
+    });
+
+    expect(await screen.findByRole('option', { name: 'Piotr Kowalski' })).toBeInTheDocument();
+    previousDoctorsRequest.resolve(response([doctor]));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Lekarz')).toHaveValue(secondDoctor.userId);
+      expect(screen.queryByRole('option', { name: 'Anna Nowak' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('resets the schedule editor when changing doctors', async () => {
+    const secondDoctor: ClinicDoctorDto = {
+      ...doctor,
+      userId: 'doctor-2',
+      firstName: 'Piotr',
+      lastName: 'Kowalski',
+    };
+    mockedClinicApi.getDoctors.mockResolvedValue(response([doctor, secondDoctor]));
+    mockedClinicApi.getWeeklyAvailability.mockImplementation((clinicId, doctorUserId) =>
+      Promise.resolve(response(
+        clinicId === clinic.id && doctorUserId === doctor.userId ? [weeklyAvailability] : [],
+      )));
+
+    render(<ClinicSchedule />);
+
+    expect(await screen.findByText('09:00–10:00 · slot 30 min')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Edytuj' }));
+    fireEvent.change(screen.getByLabelText('Od'), { target: { value: '09:30' } });
+    fireEvent.change(screen.getByLabelText('Lekarz'), { target: { value: secondDoctor.userId } });
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Dodaj zakres' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Zapisz zmiany' })).not.toBeInTheDocument();
+      expect(screen.getByLabelText('Od')).toHaveValue('09:00');
+    });
   });
 
   it('adds an existing clinic account with the selected clinic role', async () => {

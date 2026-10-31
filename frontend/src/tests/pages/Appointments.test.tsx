@@ -41,6 +41,14 @@ function response<T>(data: T): ApiResponse<T> {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 const clinic: ClinicDto = {
   id: 'clinic-1',
   name: 'Centrum Medyczne',
@@ -147,6 +155,37 @@ describe('Appointments page', () => {
       expect(mockedClinicApi.completeAppointment).toHaveBeenCalledWith(appointment.id);
     });
     expect(await screen.findByRole('status')).toHaveTextContent('Wizyta została oznaczona jako zakończona.');
+  });
+
+  it('ignores clinic appointment responses for an earlier filter and allows past dates', async () => {
+    const previousRequest = deferred<ApiResponse<AppointmentDto[]>>();
+    const previousAppointment = createAppointment({ id: 'previous-appointment', patientName: 'Old patient' });
+    const currentAppointment = createAppointment({ id: 'current-appointment', patientName: 'Current patient' });
+    mockedClinicApi.getMyClinics.mockResolvedValue(response([clinic]));
+    mockedClinicApi.getClinicAppointments
+      .mockReturnValueOnce(previousRequest.promise)
+      .mockResolvedValueOnce(response([currentAppointment]));
+
+    render(
+      <MemoryRouter>
+        <Appointments />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(mockedClinicApi.getClinicAppointments).toHaveBeenCalledTimes(1);
+    });
+    const dateInput = await screen.findByLabelText('Data kliniki');
+    expect(dateInput).not.toHaveAttribute('min');
+    fireEvent.change(dateInput, { target: { value: '2000-01-01' } });
+
+    expect(await screen.findByText(/Pacjent: Current patient/)).toBeInTheDocument();
+    previousRequest.resolve(response([previousAppointment]));
+
+    await waitFor(() => {
+      expect(screen.queryByText(/Pacjent: Old patient/)).not.toBeInTheDocument();
+      expect(screen.getByText(/Pacjent: Current patient/)).toBeInTheDocument();
+    });
   });
 
   it('shows API errors instead of hiding failed appointment requests', async () => {

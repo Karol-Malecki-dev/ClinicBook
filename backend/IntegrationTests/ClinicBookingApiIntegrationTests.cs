@@ -488,6 +488,33 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
     }
 
     [Fact]
+    public async Task Availability_slots_stop_at_a_late_window_end()
+    {
+        var scenario = await CreateClinicScenarioAsync(
+            "late-slot",
+            openTime: "00:00:00",
+            closeTime: "23:59:00");
+        SetBearerToken(scenario.DoctorTokens.AccessToken);
+        var scheduleResponse = await _client.PostAsJsonAsync(
+            AvailabilityUrl(scenario),
+            CreateAvailabilityRequest(
+                startTime: "23:00:00",
+                endTime: "23:45:00",
+                slotDurationMinutes: 15));
+        Assert.Equal(HttpStatusCode.Created, scheduleResponse.StatusCode);
+
+        SetBearerToken(scenario.PatientTokens.AccessToken);
+        var response = await _client.GetAsync(
+            AvailabilitySlotsUrl(scenario, NextMondayInClinicTime()));
+        response.EnsureSuccessStatusCode();
+        var slots = await response.Content.ReadFromJsonAsync<ApiResponse<List<AvailabilitySlotDto>>>();
+
+        Assert.Equal(
+            new[] { new TimeOnly(23, 0), new TimeOnly(23, 15), new TimeOnly(23, 30) },
+            slots?.Data?.Select(slot => TimeOnly.FromDateTime(slot.LocalStart)));
+    }
+
+    [Fact]
     public async Task Booking_rejects_unknown_resources_and_start_times_outside_generated_slots()
     {
         var scenario = await CreateClinicScenarioAsync("invalid-booking");
@@ -630,6 +657,31 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
         Assert.Single(appointments?.Data ?? []);
     }
 
+    [PostgresFact]
+    public async Task Concurrent_overlapping_schedule_requests_create_only_one_window()
+    {
+        var scenario = await CreateClinicScenarioAsync("concurrent-schedule");
+        SetBearerToken(scenario.DoctorTokens.AccessToken);
+        var availabilityUrl = AvailabilityUrl(scenario);
+
+        var responses = await Task.WhenAll(
+            _client.PostAsJsonAsync(
+                availabilityUrl,
+                CreateAvailabilityRequest(startTime: "09:00:00", endTime: "10:00:00")),
+            _client.PostAsJsonAsync(
+                availabilityUrl,
+                CreateAvailabilityRequest(startTime: "09:30:00", endTime: "10:30:00")));
+
+        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Created);
+        Assert.Single(responses, response => response.StatusCode == HttpStatusCode.Conflict);
+
+        var schedulesResponse = await _client.GetAsync(availabilityUrl);
+        schedulesResponse.EnsureSuccessStatusCode();
+        var schedules = await schedulesResponse.Content
+            .ReadFromJsonAsync<ApiResponse<List<DoctorWeeklyAvailabilityDto>>>();
+        Assert.Single(schedules?.Data ?? []);
+    }
+
     [Fact]
     public async Task Clinic_member_roles_cannot_escalate_and_inactive_memberships_can_be_reactivated()
     {
@@ -668,6 +720,11 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
 
         var administratorTokens = await LoginAsync(administratorEmail);
         SetBearerToken(administratorTokens.AccessToken);
+        var ownerDemotionResponse = await _client.PutAsJsonAsync(
+            $"/api/clinics/{scenario.ClinicId}/members/{scenario.OwnerId}",
+            new UpdateClinicMembershipRoleRequestDto { Role = ClinicRole.Doctor });
+        Assert.Equal(HttpStatusCode.BadRequest, ownerDemotionResponse.StatusCode);
+
         var administratorEscalationResponse = await _client.PostAsJsonAsync(
             $"/api/clinics/{scenario.ClinicId}/members",
             new AddClinicMembershipRequestDto

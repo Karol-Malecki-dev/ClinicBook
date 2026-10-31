@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clinicApi, HttpError } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 import { ClinicRole } from '../types';
@@ -48,6 +48,12 @@ export default function ClinicSchedule() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const doctorsRequestId = useRef(0);
+  const availabilityRequestId = useRef(0);
+  const selectedContext = useRef({ clinicId, doctorUserId });
+  selectedContext.current = { clinicId, doctorUserId };
+  const selectedClinicId = useRef(clinicId);
+  selectedClinicId.current = clinicId;
 
   const manageableClinics = useMemo(
     () => clinics.filter((clinic) => [2, 4, 5].includes(clinic.membershipRole ?? 0)),
@@ -58,6 +64,14 @@ export default function ClinicSchedule() {
   const selectableDoctors = mayManageOtherDoctors
     ? doctors
     : doctors.filter((doctor) => doctor.userId === user?.id);
+
+  const resetForm = useCallback(() => {
+    setEditingId('');
+    setDayOfWeek(1);
+    setStartTime('09:00');
+    setEndTime('17:00');
+    setSlotDurationMinutes(30);
+  }, []);
 
   const loadClinics = useCallback(async () => {
     setLoadingClinics(true);
@@ -117,10 +131,19 @@ export default function ClinicSchedule() {
   }, [loadDoctorProfile]);
 
   const loadDoctors = useCallback(async () => {
+    if (selectedClinicId.current !== clinicId) {
+      return;
+    }
+
+    const requestId = ++doctorsRequestId.current;
+    const isCurrentRequest = () => requestId === doctorsRequestId.current
+      && selectedClinicId.current === clinicId;
+
     if (!clinicId) {
       setDoctors([]);
       setDoctorUserId('');
       setAvailability([]);
+      setLoadingDoctors(false);
       return;
     }
 
@@ -130,6 +153,10 @@ export default function ClinicSchedule() {
       const response = await clinicApi.getDoctors(clinicId);
       if (!response.data) {
         throw new Error('API nie zwróciło listy lekarzy.');
+      }
+
+      if (!isCurrentRequest()) {
+        return;
       }
 
       const clinicDoctors = response.data;
@@ -143,21 +170,41 @@ export default function ClinicSchedule() {
         return currentDoctor?.userId ?? clinicDoctors[0]?.userId ?? '';
       });
     } catch (loadError) {
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       setError(getErrorMessage(loadError));
       setDoctors([]);
       setDoctorUserId('');
     } finally {
-      setLoadingDoctors(false);
+      if (isCurrentRequest()) {
+        setLoadingDoctors(false);
+      }
     }
   }, [clinicId, user?.id]);
 
   useEffect(() => {
     void loadDoctors();
+    return () => {
+      doctorsRequestId.current += 1;
+    };
   }, [loadDoctors]);
 
   const loadAvailability = useCallback(async () => {
+    if (selectedContext.current.clinicId !== clinicId
+      || selectedContext.current.doctorUserId !== doctorUserId) {
+      return;
+    }
+
+    const requestId = ++availabilityRequestId.current;
+    const isCurrentRequest = () => requestId === availabilityRequestId.current
+      && selectedContext.current.clinicId === clinicId
+      && selectedContext.current.doctorUserId === doctorUserId;
+
     if (!clinicId || !doctorUserId) {
       setAvailability([]);
+      setLoadingAvailability(false);
       return;
     }
 
@@ -168,26 +215,36 @@ export default function ClinicSchedule() {
         throw new Error('API nie zwróciło grafiku lekarza.');
       }
 
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       setAvailability(response.data);
     } catch (loadError) {
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       setAvailability([]);
       setError(getErrorMessage(loadError));
     } finally {
-      setLoadingAvailability(false);
+      if (isCurrentRequest()) {
+        setLoadingAvailability(false);
+      }
     }
   }, [clinicId, doctorUserId]);
 
   useEffect(() => {
     void loadAvailability();
+    return () => {
+      availabilityRequestId.current += 1;
+    };
   }, [loadAvailability]);
 
-  const resetForm = () => {
-    setEditingId('');
-    setDayOfWeek(1);
-    setStartTime('09:00');
-    setEndTime('17:00');
-    setSlotDurationMinutes(30);
-  };
+  useEffect(() => {
+    resetForm();
+    setAvailability([]);
+  }, [clinicId, doctorUserId, resetForm]);
 
   const submitAvailability = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -257,6 +314,7 @@ export default function ClinicSchedule() {
       return;
     }
 
+    const profileClinicId = clinicId;
     const formData = new FormData(event.currentTarget);
     const firstName = String(formData.get('firstName') ?? '').trim();
     const lastName = String(formData.get('lastName') ?? '').trim();
@@ -279,6 +337,9 @@ export default function ClinicSchedule() {
 
       setDoctorProfile(response.data);
       setNotice('Profil lekarza został utworzony. Administrator kliniki może teraz dodać to konto do zespołu.');
+      if (profileClinicId && selectedClinicId.current === profileClinicId) {
+        await loadDoctors();
+      }
     } catch (profileError) {
       setError(getErrorMessage(profileError));
     } finally {
@@ -370,7 +431,19 @@ export default function ClinicSchedule() {
           <div className="grid grid--2">
             <div className="field">
               <label className="field__label" htmlFor="schedule-clinic-select">Klinika</label>
-              <select id="schedule-clinic-select" value={clinicId} onChange={(event) => setClinicId(event.target.value)}>
+              <select
+                id="schedule-clinic-select"
+                value={clinicId}
+                onChange={(event) => {
+                  doctorsRequestId.current += 1;
+                  availabilityRequestId.current += 1;
+                  setDoctors([]);
+                  setDoctorUserId('');
+                  setAvailability([]);
+                  resetForm();
+                  setClinicId(event.target.value);
+                }}
+              >
                 {manageableClinics.map((clinic) => (
                   <option key={clinic.id} value={clinic.id}>{clinic.name}</option>
                 ))}
@@ -381,7 +454,12 @@ export default function ClinicSchedule() {
               <select
                 id="schedule-doctor-select"
                 value={doctorUserId}
-                onChange={(event) => setDoctorUserId(event.target.value)}
+                onChange={(event) => {
+                  availabilityRequestId.current += 1;
+                  setAvailability([]);
+                  resetForm();
+                  setDoctorUserId(event.target.value);
+                }}
                 disabled={loadingDoctors || selectableDoctors.length === 0}
               >
                 {selectableDoctors.length === 0 ? <option value="">Brak aktywnych lekarzy</option> : null}

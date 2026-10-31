@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { clinicApi } from '../services/api';
 import {
@@ -125,13 +125,14 @@ export default function Appointments() {
   const [busyAppointmentId, setBusyAppointmentId] = useState('');
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const clinicAppointmentsRequestId = useRef(0);
+  const staffSelection = useRef({ staffClinicId, date });
+  staffSelection.current = { staffClinicId, date };
 
   const staffClinics = useMemo(
     () => clinics.filter((clinic) => clinic.membershipRole && clinic.membershipRole !== clinicPatientRole),
     [clinics],
   );
-  const selectedStaffClinic = staffClinics.find((clinic) => clinic.id === staffClinicId);
-
   const loadPatientAppointments = useCallback(async () => {
     setLoadingAppointments(true);
     try {
@@ -172,8 +173,20 @@ export default function Appointments() {
   }, []);
 
   const loadClinicAppointments = useCallback(async () => {
+    const requestSelection = { staffClinicId, date };
+    if (staffSelection.current.staffClinicId !== staffClinicId
+      || staffSelection.current.date !== date) {
+      return;
+    }
+
+    const requestId = ++clinicAppointmentsRequestId.current;
+    const isCurrentRequest = () => requestId === clinicAppointmentsRequestId.current
+      && staffSelection.current.staffClinicId === requestSelection.staffClinicId
+      && staffSelection.current.date === requestSelection.date;
+
     if (!staffClinicId) {
       setClinicAppointments([]);
+      setLoadingClinicAppointments(false);
       return;
     }
 
@@ -184,12 +197,22 @@ export default function Appointments() {
         throw new Error('API nie zwróciło listy wizyt kliniki.');
       }
 
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       setClinicAppointments(response.data);
     } catch (loadError) {
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       setError(getErrorMessage(loadError));
       setClinicAppointments([]);
     } finally {
-      setLoadingClinicAppointments(false);
+      if (isCurrentRequest()) {
+        setLoadingClinicAppointments(false);
+      }
     }
   }, [date, staffClinicId]);
 
@@ -200,6 +223,9 @@ export default function Appointments() {
 
   useEffect(() => {
     void loadClinicAppointments();
+    return () => {
+      clinicAppointmentsRequestId.current += 1;
+    };
   }, [loadClinicAppointments]);
 
   const changeAppointment = async (
@@ -263,6 +289,8 @@ export default function Appointments() {
                 value={staffClinicId}
                 onChange={(event) => {
                   const selectedId = event.target.value;
+                  clinicAppointmentsRequestId.current += 1;
+                  setClinicAppointments([]);
                   setStaffClinicId(selectedId);
                   const clinic = staffClinics.find((item) => item.id === selectedId);
                   if (clinic) {
@@ -280,9 +308,12 @@ export default function Appointments() {
               <input
                 id="clinic-appointments-date"
                 type="date"
-                min={selectedStaffClinic ? getDateInTimeZone(selectedStaffClinic.timeZoneId) : undefined}
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
+                onChange={(event) => {
+                  clinicAppointmentsRequestId.current += 1;
+                  setClinicAppointments([]);
+                  setDate(event.target.value);
+                }}
               />
             </div>
           </div>

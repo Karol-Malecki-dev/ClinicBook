@@ -21,7 +21,7 @@ public sealed class DoctorWeeklyAvailabilityConfiguration
             availability.StartTime
         })
             .IsUnique()
-            .HasDatabaseName("IX_DoctorWeeklyAvailabilities_ClinicId_DoctorProfileId_DayOfWeek_StartTime");
+            .HasDatabaseName("IX_DoctorAvail_Clinic_Doctor_Day_Start");
 
         builder.Property(availability => availability.StartTime).IsRequired();
         builder.Property(availability => availability.EndTime).IsRequired();

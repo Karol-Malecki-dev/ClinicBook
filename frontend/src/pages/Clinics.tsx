@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { clinicApi } from '../services/api';
 import type {
   AvailabilitySlotDto,
@@ -52,6 +52,9 @@ export default function Clinics() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const selectedClinic = clinics.find((clinic) => clinic.id === clinicId);
+  const slotsRequestId = useRef(0);
+  const slotSelection = useRef({ clinicId, doctorUserId, date });
+  slotSelection.current = { clinicId, doctorUserId, date };
 
   const loadClinics = useCallback(async (preferredClinicId?: string) => {
     setLoadingClinics(true);
@@ -123,8 +126,22 @@ export default function Clinics() {
   }, [clinicId]);
 
   const loadSlots = useCallback(async (preserveError = false) => {
+    const requestSelection = { clinicId, doctorUserId, date };
+    if (slotSelection.current.clinicId !== clinicId
+      || slotSelection.current.doctorUserId !== doctorUserId
+      || slotSelection.current.date !== date) {
+      return;
+    }
+
+    const requestId = ++slotsRequestId.current;
+    const isCurrentRequest = () => requestId === slotsRequestId.current
+      && slotSelection.current.clinicId === requestSelection.clinicId
+      && slotSelection.current.doctorUserId === requestSelection.doctorUserId
+      && slotSelection.current.date === requestSelection.date;
+
     if (!clinicId || !doctorUserId || !date) {
       setSlots([]);
+      setLoadingSlots(false);
       return;
     }
 
@@ -138,19 +155,33 @@ export default function Clinics() {
         throw new Error('API nie zwróciło listy dostępnych terminów.');
       }
 
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       setSlots(response.data);
     } catch (loadError) {
+      if (!isCurrentRequest()) {
+        return;
+      }
+
       if (!preserveError) {
         setError(getErrorMessage(loadError));
       }
       setSlots([]);
     } finally {
-      setLoadingSlots(false);
+      if (isCurrentRequest()) {
+        setLoadingSlots(false);
+      }
     }
   }, [clinicId, doctorUserId, date]);
 
   useEffect(() => {
+    setSlots([]);
     void loadSlots();
+    return () => {
+      slotsRequestId.current += 1;
+    };
   }, [loadSlots]);
 
   const createClinic = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -197,6 +228,10 @@ export default function Clinics() {
       return;
     }
 
+    const requestSelection = { clinicId, doctorUserId, date };
+    const isCurrentSelection = () => slotSelection.current.clinicId === requestSelection.clinicId
+      && slotSelection.current.doctorUserId === requestSelection.doctorUserId
+      && slotSelection.current.date === requestSelection.date;
     setBookingSlot(slot.startsAtUtc);
     setError('');
     setNotice('');
@@ -208,14 +243,24 @@ export default function Clinics() {
         throw new Error('API nie zwróciło potwierdzenia wizyty.');
       }
 
+      if (!isCurrentSelection()) {
+        return;
+      }
+
       setNotice(`Wizyta zarezerwowana na ${slot.localStart.slice(0, 16).replace('T', ' ')} (${slot.timeZoneId}).`);
       await loadSlots();
     } catch (bookingError) {
+      if (!isCurrentSelection()) {
+        return;
+      }
+
       const message = getErrorMessage(bookingError);
       await loadSlots(true);
       setError(message);
     } finally {
-      setBookingSlot('');
+      if (isCurrentSelection()) {
+        setBookingSlot('');
+      }
     }
   };
 
@@ -242,6 +287,9 @@ export default function Clinics() {
                   value={clinicId}
                   onChange={(event) => {
                     const selectedId = event.target.value;
+                    slotsRequestId.current += 1;
+                    setSlots([]);
+                    setBookingSlot('');
                     setClinicId(selectedId);
                     const clinic = clinics.find((item) => item.id === selectedId);
                     if (clinic) {
@@ -261,7 +309,12 @@ export default function Clinics() {
                 <select
                   id="doctor-select"
                   value={doctorUserId}
-                  onChange={(event) => setDoctorUserId(event.target.value)}
+                  onChange={(event) => {
+                    slotsRequestId.current += 1;
+                    setSlots([]);
+                    setBookingSlot('');
+                    setDoctorUserId(event.target.value);
+                  }}
                   disabled={loadingDoctors || doctors.length === 0}
                 >
                   {doctors.length === 0 ? <option value="">Brak lekarzy z profilem w tej klinice</option> : null}
@@ -292,7 +345,12 @@ export default function Clinics() {
                 type="date"
                 min={selectedClinic ? getDateInTimeZone(selectedClinic.timeZoneId) : getLocalDateValue()}
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
+                onChange={(event) => {
+                  slotsRequestId.current += 1;
+                  setSlots([]);
+                  setBookingSlot('');
+                  setDate(event.target.value);
+                }}
               />
             </div>
 

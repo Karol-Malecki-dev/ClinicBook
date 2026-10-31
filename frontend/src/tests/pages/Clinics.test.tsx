@@ -33,6 +33,14 @@ function response<T>(data: T): ApiResponse<T> {
   };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+  return { promise, resolve };
+}
+
 const clinic: ClinicDto = {
   id: 'clinic-1',
   name: 'Centrum Medyczne',
@@ -158,6 +166,36 @@ describe('Clinics page', () => {
     render(<Clinics />);
 
     expect(await screen.findByText('Brak dostępnych terminów w wybranym dniu.')).toBeInTheDocument();
+  });
+
+  it('ignores availability responses for an earlier date selection', async () => {
+    const previousRequest = deferred<ApiResponse<AvailabilitySlotDto[]>>();
+    const currentSlot: AvailabilitySlotDto = {
+      ...slot,
+      startsAtUtc: '2026-11-03T09:00:00+00:00',
+      endsAtUtc: '2026-11-03T09:30:00+00:00',
+      localStart: '2026-11-03T10:00:00',
+      localEnd: '2026-11-03T10:30:00',
+    };
+    mockedClinicApi.getAvailableSlots
+      .mockReturnValueOnce(previousRequest.promise)
+      .mockResolvedValueOnce(response([currentSlot]));
+
+    render(<Clinics />);
+
+    await waitFor(() => {
+      expect(mockedClinicApi.getAvailableSlots).toHaveBeenCalledTimes(1);
+    });
+    fireEvent.change(await screen.findByLabelText('Data wizyty'), {
+      target: { value: '2026-11-03' },
+    });
+
+    expect(await screen.findByRole('button', { name: '10:00–10:30' })).toBeInTheDocument();
+    previousRequest.resolve(response([slot]));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: '09:00–09:30' })).not.toBeInTheDocument();
+    });
   });
 
   it('shows a booking conflict and refreshes the available slots', async () => {

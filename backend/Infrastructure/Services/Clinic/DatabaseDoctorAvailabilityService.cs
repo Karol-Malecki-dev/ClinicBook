@@ -13,8 +13,7 @@ namespace Infrastructure.Services.Clinic;
 
 public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityService
 {
-    private const string AvailabilityIndexName =
-        "IX_DoctorWeeklyAvailabilities_ClinicId_DoctorProfileId_DayOfWeek_StartTime";
+    private const string AvailabilityIndexName = "IX_DoctorAvail_Clinic_Doctor_Day_Start";
 
     private readonly ApplicationDbContext _dbContext;
 
@@ -104,6 +103,8 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        await using var transaction = await ClinicTransactionLock.BeginAsync(_dbContext, clinicId);
+
         var (clinic, doctor, error) = await GetDoctorContextAsync(clinicId, doctorUserId);
         if (error is not null)
         {
@@ -139,6 +140,10 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
         try
         {
             await _dbContext.SaveChangesAsync();
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync();
+            }
         }
         catch (DbUpdateException exception) when (IsAvailabilityUniqueViolation(exception))
         {
@@ -159,6 +164,8 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
         SetDoctorWeeklyAvailabilityRequestDto request)
     {
         ArgumentNullException.ThrowIfNull(request);
+
+        await using var transaction = await ClinicTransactionLock.BeginAsync(_dbContext, clinicId);
 
         var (clinic, doctor, error) = await GetDoctorContextAsync(clinicId, doctorUserId);
         if (error is not null)
@@ -201,6 +208,10 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
         try
         {
             await _dbContext.SaveChangesAsync();
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync();
+            }
         }
         catch (DbUpdateException exception) when (IsAvailabilityUniqueViolation(exception))
         {
@@ -218,6 +229,8 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
         Guid doctorUserId,
         Guid availabilityId)
     {
+        await using var transaction = await ClinicTransactionLock.BeginAsync(_dbContext, clinicId);
+
         var (clinic, doctor, error) = await GetDoctorContextAsync(clinicId, doctorUserId);
         if (error is not null)
         {
@@ -241,6 +254,10 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
 
         _dbContext.DoctorWeeklyAvailabilities.Remove(availability);
         await _dbContext.SaveChangesAsync();
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
 
         return ApiResponse<bool>.Success(true, "Doctor availability deleted.");
     }
@@ -394,7 +411,8 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
         foreach (var schedule in schedules)
         {
             var startTime = schedule.StartTime;
-            while (startTime.AddMinutes(schedule.SlotDurationMinutes) <= schedule.EndTime)
+            var slotDuration = TimeSpan.FromMinutes(schedule.SlotDurationMinutes);
+            while (schedule.EndTime - startTime >= slotDuration)
             {
                 var endTime = startTime.AddMinutes(schedule.SlotDurationMinutes);
                 var localStart = date.ToDateTime(startTime, DateTimeKind.Unspecified);

@@ -103,7 +103,7 @@ namespace Infrastructure.Data.Migrations
                 columns: new[] { "PatientUserId", "StartsAtUtc" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_DoctorWeeklyAvailabilities_ClinicId_DoctorProfileId_DayOfWeek_StartTime",
+                name: "IX_DoctorAvail_Clinic_Doctor_Day_Start",
                 table: "DoctorWeeklyAvailabilities",
                 columns: new[] { "ClinicId", "DoctorProfileId", "DayOfWeek", "StartTime" },
                 unique: true);
