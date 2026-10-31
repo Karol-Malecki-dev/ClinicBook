@@ -33,7 +33,7 @@ public sealed class DatabaseDoctorProfileService : IDoctorProfileService
         {
             return ApiResponse<DoctorProfileResponseDto>.Error(
                 403,
-                "A user can read only their own doctor profile.");
+                "A user can view only their own doctor profile.");
         }
 
         var profile = await _dbContext.DoctorProfiles

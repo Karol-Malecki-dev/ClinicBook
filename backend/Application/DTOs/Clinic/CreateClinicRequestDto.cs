@@ -16,4 +16,5 @@ public sealed class CreateClinicRequestDto
     public string? Website { get; init; }
     public TimeOnly OpenTime { get; init; }
     public TimeOnly CloseTime { get; init; }
+    public string TimeZoneId { get; init; } = Domain.Entities.Clinic.Clinic.DefaultTimeZoneId;
 }

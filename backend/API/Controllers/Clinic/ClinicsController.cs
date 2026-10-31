@@ -18,6 +18,27 @@ public sealed class ClinicsController : ApiControllerBase
         _clinicService = clinicService;
     }
 
+    [HttpGet("discover")]
+    [ProducesResponseType(
+        typeof(ApiResponse<List<ClinicResponseDto>>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(
+        typeof(ApiResponse<List<ClinicResponseDto>>),
+        StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<ApiResponse<List<ClinicResponseDto>>>> DiscoverClinics()
+    {
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return Unauthorized(
+                ApiResponse<List<ClinicResponseDto>>.Error(
+                    StatusCodes.Status401Unauthorized,
+                    "User not authenticated"));
+        }
+
+        var result = await _clinicService.GetDiscoverableClinicsAsync(currentUserId);
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpGet]
     [ProducesResponseType(
         typeof(ApiResponse<List<ClinicResponseDto>>), 

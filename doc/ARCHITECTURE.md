@@ -94,6 +94,15 @@ Najważniejsze tabele/encje:
 - `EmailConfirmationTokens`
 - `EmailTwoFactorChallenges`
 - `PasswordResetRequests`
+- `Clinics`
+- `ClinicMemberships`
+- `ClinicRooms`
+- `DoctorProfiles`
+- `DoctorSpecializations`
+- `PatientProfiles`
+- `Specializations`
+- `DoctorWeeklyAvailabilities`
+- `Appointments`
 - `Projects`
 - `ProjectMembers`
 - `ProjectTasks`
@@ -111,6 +120,9 @@ Relacje są proste i czytelne:
 - `ProjectTask` może mieć opcjonalnego przypisanego członka projektu przez `AssignedUserId`
 - usunięcie projektu kaskadowo usuwa jego zadania
 - usunięcie przypisanego użytkownika ustawia `AssignedUserId` na `NULL`
+- `ClinicMembership` łączy konto z kliniką i rolą w tej klinice
+- `DoctorWeeklyAvailability` przechowuje lokalne okno tygodniowe dla lekarza w klinice
+- `Appointment` łączy klinikę, profil lekarza i konto pacjenta; jego przedział czasu jest przechowywany jako UTC
 
 ### Project And ProjectTask Domain
 
@@ -156,7 +168,23 @@ DELETE /api/projects/{projectId}/members/{userId}
 
 Szczegółowy workflow dodawania tej funkcji znajduje się w `doc/ADDING_FEATURES.md`.
 
-To oznacza, że baza jest obecnie zorientowana głównie wokół auth i kont użytkowników, a nie rozbudowanej domeny biznesowej.
+### Clinic Booking Domain
+
+Strefa IANA jest ustawiana przez klinikę; frontend może zaproponować strefę urządzenia
+osoby konfigurującej, ale nie wyznacza jej z adresu ani geolokalizacji. Godziny
+grafiku są interpretowane w strefie kliniki, a wizyty zapisują absolutne terminy
+UTC. Odpowiedzi API zwracają także czasy lokalne do wyświetlenia.
+
+Grafik tygodniowy jest powtarzalny, ograniczony godzinami otwarcia kliniki i nie
+może nakładać się z innym oknem tego samego lekarza w tej klinice. Terminy
+niejednoznaczne lub nieistniejące podczas zmiany czasu nie są udostępniane.
+Rezerwacja ponownie sprawdza aktualny grafik i zajętość, a PostgreSQL używa
+transakcji serializable i unikalnego indeksu aktywnych wizyt dla ochrony przed
+równoczesnym podwójnym zapisem.
+
+Pacjent widzi i anuluje wyłącznie własne wizyty. Lekarz widzi wizyty przypisane
+do siebie, a recepcja i administrator kliniki mogą przeglądać wizyty placówki.
+Dokładny zakres V1 opisuje `doc/CLINICBOOK_V1.md`.
 
 ## Runtime Configuration as a Project Pattern
 

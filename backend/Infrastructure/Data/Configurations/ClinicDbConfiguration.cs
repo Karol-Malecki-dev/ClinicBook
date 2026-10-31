@@ -37,6 +37,11 @@ namespace Infrastructure.Data.Configurations
             builder.Property(clinic => clinic.CloseTime)
                 .IsRequired();
 
+            builder.Property(clinic => clinic.TimeZoneId)
+                .IsRequired()
+                .HasMaxLength(100)
+                .HasDefaultValue(Domain.Entities.Clinic.Clinic.DefaultTimeZoneId);
+
             builder.OwnsOne(clinic => clinic.Address, address =>
             {
                 address.Property(x => x.Street)

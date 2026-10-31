@@ -1,9 +1,13 @@
-# .NET React Starter
+# ClinicBook
 
-Full-stack starter przygotowany z myślą o nauce wzorców stosowanych w aplikacjach produkcyjnych. Projekt łączy API ASP.NET Core 9, frontend React + TypeScript, PostgreSQL, uwierzytelnianie JWT, rotację refresh tokenów, Docker Compose oraz automatyczne testy.
+Aplikacja full-stack do zarządzania kliniką i rezerwowania wizyt. Backend ASP.NET Core 9 udostępnia API z uwierzytelnianiem JWT, a frontend React + TypeScript obsługuje pacjentów i personel kliniki. PostgreSQL przechowuje grafik tygodniowy oraz wizyty jako terminy UTC wyświetlane w lokalnej strefie czasowej kliniki.
 
 ## Najważniejsze funkcje
 
+- profile klinik, lekarzy i członkostw z rolami personelu;
+- tygodniowa dostępność lekarzy oraz wyszukiwanie i rezerwowanie terminów;
+- przegląd i anulowanie wizyt przez pacjenta oraz obsługa wizyt przez personel;
+- strefa IANA wybierana dla kliniki, z propozycją na podstawie strefy urządzenia;
 - podział backendu na warstwy `API`, `Application`, `Domain`, `Infrastructure` i `Shared`;
 - JWT access token oraz rotacja refresh tokenów w ciasteczkach HttpOnly;
 - potwierdzanie adresu e-mail i e-mailowe 2FA;
@@ -55,6 +59,8 @@ Aktywny manifest aplikacji frontendowej znajduje się w [frontend/package.json](
 └── .github/workflows/        # workflowy CI i publikacji obrazów
 ```
 
+Szczegółowy zakres i ograniczenia V1 znajdują się w [doc/CLINICBOOK_V1.md](doc/CLINICBOOK_V1.md).
+
 ## Szybki start
 
 ### Wymagania
@@ -66,8 +72,6 @@ Aktywny manifest aplikacji frontendowej znajduje się w [frontend/package.json](
 ### Docker Compose
 
 ```powershell
-git clone https://github.com/Karol8284/dotnet-react-starter.git
-Set-Location dotnet-react-starter
 Copy-Item .env.example .env
 docker compose up --build
 ```
@@ -87,7 +91,7 @@ Compose uruchamia PostgreSQL, Mailpit, backend i frontend. Wartości domyślne s
 Backend:
 
 ```powershell
-Set-Location backend/API
+Set-Location backend\API
 dotnet run
 ```
 
@@ -120,14 +124,20 @@ Frontend przechowuje lokalnie wyłącznie access token. Refresh token pozostaje 
 Backend:
 
 ```powershell
-dotnet test backend/UnitTests/UnitTests.csproj
-dotnet test backend/IntegrationTests/IntegrationTests.csproj
+dotnet test backend\UnitTests\UnitTests.csproj
+dotnet test backend\IntegrationTests\IntegrationTests.csproj
+```
+
+Test przepływu rezerwacji:
+
+```powershell
+dotnet test backend\IntegrationTests\IntegrationTests.csproj --filter FullyQualifiedName~ClinicBookingApiIntegrationTests
 ```
 
 Smoke testy E2E wymagają uruchomionego środowiska:
 
 ```powershell
-./scripts/Invoke-E2ETests.ps1
+.\scripts\Invoke-E2ETests.ps1
 ```
 
 Frontend:
@@ -149,6 +159,9 @@ Workflow CD publikuje obrazy z tagiem SHA oraz `latest`. Nie wykonuje jeszcze wd
 
 ## Znane ograniczenia
 
+- grafik tygodniowy nie obsługuje wyjątków, urlopów ani świąt;
+- V1 nie wysyła powiadomień o rezerwacji i nie przechowuje powodów wizyt, diagnoz ani dokumentacji medycznej;
+- zmiana strefy kliniki po utworzeniu wizyty jest blokowana;
 - frontend korzysta z Vite i Vitest; pozostałe podatności React Routera wymagają osobnej decyzji dotyczącej migracji do wersji 7;
 - Docker Compose jest przede wszystkim lokalnym środowiskiem uruchomieniowym i testowym;
 - domyślne hasła oraz sekrety Compose nie nadają się do środowiska produkcyjnego;
@@ -157,6 +170,7 @@ Workflow CD publikuje obrazy z tagiem SHA oraz `latest`. Nie wykonuje jeszcze wd
 
 ## Dokumentacja
 
+- [doc/CLINICBOOK_V1.md](doc/CLINICBOOK_V1.md)
 - [doc/GETTING_STARTED.md](doc/GETTING_STARTED.md)
 - [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md)
 - [doc/BACKEND_SETUP.md](doc/BACKEND_SETUP.md)

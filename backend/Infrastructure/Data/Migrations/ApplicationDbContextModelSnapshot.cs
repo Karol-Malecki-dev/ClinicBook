@@ -150,6 +150,52 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("PasswordResetRequests", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.Clinic.Appointment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DoctorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("EndsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("PatientUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("StartsAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<DateTimeOffset>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClinicId");
+
+                    b.HasIndex("DoctorProfileId", "StartsAtUtc")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Appointments_DoctorProfileId_StartsAtUtc_Booked")
+                        .HasFilter("\"Status\" = 'Booked'");
+
+                    b.HasIndex("PatientUserId", "StartsAtUtc");
+
+                    b.ToTable("Appointments", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Clinic.Clinic", b =>
                 {
                     b.Property<Guid>("Id")
@@ -182,6 +228,13 @@ namespace Infrastructure.Data.Migrations
                     b.Property<string>("PhoneNumber3")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasDefaultValue("Europe/Warsaw");
 
                     b.Property<string>("Website")
                         .HasMaxLength(256)
@@ -249,6 +302,41 @@ namespace Infrastructure.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ClinicRooms", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Entities.Clinic.DoctorWeeklyAvailability", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("DoctorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<int>("SlotDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorProfileId");
+
+                    b.HasIndex("ClinicId", "DoctorProfileId", "DayOfWeek", "StartTime")
+                        .IsUnique()
+                        .HasDatabaseName("IX_DoctorAvail_Clinic_Doctor_Day_Start");
+
+                    b.ToTable("DoctorWeeklyAvailabilities", (string)null);
                 });
 
             modelBuilder.Entity("Domain.Entities.Doctor.DoctorProfile", b =>
@@ -642,6 +730,33 @@ namespace Infrastructure.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Domain.Entities.Clinic.Appointment", b =>
+                {
+                    b.HasOne("Domain.Entities.Clinic.Clinic", "Clinic")
+                        .WithMany("Appointments")
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Doctor.DoctorProfile", "DoctorProfile")
+                        .WithMany("Appointments")
+                        .HasForeignKey("DoctorProfileId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.User", "Patient")
+                        .WithMany()
+                        .HasForeignKey("PatientUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("DoctorProfile");
+
+                    b.Navigation("Patient");
+                });
+
             modelBuilder.Entity("Domain.Entities.Clinic.Clinic", b =>
                 {
                     b.OwnsOne("Domain.ValueObjects.Address", "Address", b1 =>
@@ -717,6 +832,25 @@ namespace Infrastructure.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Clinic");
+                });
+
+            modelBuilder.Entity("Domain.Entities.Clinic.DoctorWeeklyAvailability", b =>
+                {
+                    b.HasOne("Domain.Entities.Clinic.Clinic", "Clinic")
+                        .WithMany("DoctorWeeklyAvailabilities")
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Doctor.DoctorProfile", "DoctorProfile")
+                        .WithMany("WeeklyAvailabilities")
+                        .HasForeignKey("DoctorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("DoctorProfile");
                 });
 
             modelBuilder.Entity("Domain.Entities.Doctor.DoctorProfile", b =>
@@ -868,6 +1002,10 @@ namespace Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Domain.Entities.Clinic.Clinic", b =>
                 {
+                    b.Navigation("Appointments");
+
+                    b.Navigation("DoctorWeeklyAvailabilities");
+
                     b.Navigation("Memberships");
 
                     b.Navigation("Rooms");
@@ -875,7 +1013,11 @@ namespace Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Domain.Entities.Doctor.DoctorProfile", b =>
                 {
+                    b.Navigation("Appointments");
+
                     b.Navigation("DoctorSpecializations");
+
+                    b.Navigation("WeeklyAvailabilities");
                 });
 
             modelBuilder.Entity("Domain.Entities.Doctor.Specialization", b =>

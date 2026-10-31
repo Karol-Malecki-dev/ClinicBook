@@ -34,27 +34,66 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<ClinicMembershipResponseDto>.Error(authorization.Value.StatusCode, authorization.Value.Message);
         }
 
-        if (!CanAssignRole(request.Role))
+        if (!IsAssignableRole(request.Role))
         {
-            return ApiResponse<ClinicMembershipResponseDto>.Error(400, "Only the Patient or Doctor role can be assigned.");
+            return ApiResponse<ClinicMembershipResponseDto>.Error(
+                400,
+                "The Owner role is assigned when a clinic is created and cannot be assigned.");
         }
 
-        var userExists = await _dbContext.Users.AnyAsync(user => user.Id == request.UserId && user.IsActive);
-        if (!userExists)
+        if (request.Role == ClinicRole.ClinicAdministrator
+            && !await IsClinicOwnerAsync(currentUserId, clinicId))
+        {
+            return ApiResponse<ClinicMembershipResponseDto>.Error(
+                403,
+                "Only the clinic owner can assign the ClinicAdministrator role.");
+        }
+
+        if ((request.UserId != Guid.Empty) == !string.IsNullOrWhiteSpace(request.Email))
+        {
+            return ApiResponse<ClinicMembershipResponseDto>.Error(
+                400,
+                "Provide either a user ID or an email address, but not both.");
+        }
+
+        var targetUserId = request.UserId;
+        if (targetUserId == Guid.Empty)
+        {
+            var normalizedEmail = request.Email!.Trim().ToLowerInvariant();
+            targetUserId = await _dbContext.Users
+                .Where(user => user.IsActive && user.Email.ToLower() == normalizedEmail)
+                .Select(user => user.Id)
+                .FirstOrDefaultAsync();
+        }
+
+        if (targetUserId == Guid.Empty
+            || !await _dbContext.Users.AnyAsync(user =>
+                user.Id == targetUserId
+                && user.IsActive))
         {
             return ApiResponse<ClinicMembershipResponseDto>.Error(404, "User not found or is not active.");
         }
 
-        var membershipExists = await _dbContext.ClinicMemberships.AnyAsync(
+        var existingMembership = await _dbContext.ClinicMemberships.FirstOrDefaultAsync(
             membership => membership.ClinicId == clinicId
-                && membership.UserId == request.UserId
-                && membership.IsActive);
-        if (membershipExists)
+                && membership.UserId == targetUserId);
+        if (existingMembership is { IsActive: true })
         {
             return ApiResponse<ClinicMembershipResponseDto>.Error(400, "User is already an active member of the clinic.");
         }
 
-        var membership = new ClinicMembership(request.UserId, clinicId, request.Role);
+        if (existingMembership is not null)
+        {
+            existingMembership.ChangeRole(request.Role);
+            existingMembership.Activate();
+            await _dbContext.SaveChangesAsync();
+
+            return ApiResponse<ClinicMembershipResponseDto>.Success(
+                ClinicMembershipMapper.ToResponseDto(existingMembership),
+                "Clinic membership reactivated successfully.");
+        }
+
+        var membership = new ClinicMembership(targetUserId, clinicId, request.Role);
         _dbContext.ClinicMemberships.Add(membership);
         await _dbContext.SaveChangesAsync();
 
@@ -82,7 +121,7 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<bool>.Error(404, "Active clinic membership not found.");
         }
 
-        if (!CanChangeOrRemoveMembership(membership.Role))
+        if (membership.Role is ClinicRole.Owner or ClinicRole.ClinicAdministrator)
         {
             return ApiResponse<bool>.Error(400, "Owner and ClinicAdministrator memberships cannot be deleted.");
         }
@@ -147,9 +186,19 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             return ApiResponse<ClinicMembershipResponseDto>.Error(authorization.Value.StatusCode, authorization.Value.Message);
         }
 
-        if (!CanAssignRole(request.Role))
+        if (!IsAssignableRole(request.Role))
         {
-            return ApiResponse<ClinicMembershipResponseDto>.Error(400, "Only the Patient or Doctor role can be assigned.");
+            return ApiResponse<ClinicMembershipResponseDto>.Error(
+                400,
+                "The Owner role is assigned when a clinic is created and cannot be assigned.");
+        }
+
+        if (request.Role == ClinicRole.ClinicAdministrator
+            && !await IsClinicOwnerAsync(currentUserId, clinicId))
+        {
+            return ApiResponse<ClinicMembershipResponseDto>.Error(
+                403,
+                "Only the clinic owner can assign the ClinicAdministrator role.");
         }
 
         var membership = await _dbContext.ClinicMemberships.FirstOrDefaultAsync(
@@ -175,8 +224,13 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             "Clinic membership updated successfully.");
     }
 
-    private static bool CanAssignRole(ClinicRole role)
-        => role is ClinicRole.Patient or ClinicRole.Doctor;
+    private static bool IsAssignableRole(ClinicRole role)
+    {
+        return role is ClinicRole.Patient
+            or ClinicRole.Doctor
+            or ClinicRole.Receptionist
+            or ClinicRole.ClinicAdministrator;
+    }
 
     private static bool CanChangeOrRemoveMembership(ClinicRole role)
         => role is not ClinicRole.Owner and not ClinicRole.ClinicAdministrator;
@@ -210,4 +264,15 @@ public sealed class DatabaseClinicMembershipService : IClinicMembershipService
             ? null
             : (403, "Current user does not have permission to manage clinic members.");
     }
+
+    private async Task<bool> IsClinicOwnerAsync(Guid userId, Guid clinicId)
+    {
+        return await _dbContext.ClinicMemberships.AnyAsync(membership =>
+            membership.UserId == userId
+            && membership.ClinicId == clinicId
+            && membership.IsActive
+            && membership.User.IsActive
+            && membership.Role == ClinicRole.Owner);
+    }
+
 }

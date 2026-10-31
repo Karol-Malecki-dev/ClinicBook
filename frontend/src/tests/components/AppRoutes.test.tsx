@@ -39,6 +39,6 @@ describe('AppRoutes', () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('heading', { name: /professional auth flow, clear boundaries, zero guessing/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /umów wizytę w klinice/i })).toBeInTheDocument();
   });
 });

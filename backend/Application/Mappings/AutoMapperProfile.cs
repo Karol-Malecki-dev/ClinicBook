@@ -14,6 +14,7 @@ public sealed class AutoMapperProfile : Profile
     public AutoMapperProfile()
     {
         CreateMap<Address, AddressDto>();
-        CreateMap<Clinic, ClinicResponseDto>();
+        CreateMap<Clinic, ClinicResponseDto>()
+            .ForMember(destination => destination.MembershipRole, options => options.Ignore());
     }
 }

@@ -1,80 +1,32 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { useFeatureAvailability } from '../hooks/useFeatureAvailability';
 
 export default function Dashboard() {
-  const { user, tokens, isAuthenticated } = useAuth();
-  const {
-    dashboardOverviewEnabled,
-    globalSearchEnabled,
-    emailFeatureSectionsEnabled,
-    emailDeliveryEnabled,
-    emailTwoFactorEnabled,
-  } = useFeatureAvailability();
-  const isAdmin = user?.role === 'Admin';
+  const { user } = useAuth();
 
   return (
     <section className="page-shell">
-      <h1>Dashboard</h1>
-      <p>Protected workspace for authenticated users with feature-gated navigation and runtime shell data.</p>
-
-      {dashboardOverviewEnabled ? (
-        <>
-          <div className="grid grid--2">
-            <article className="card">
-              <h2>Session</h2>
-              <p>Status: {isAuthenticated ? 'authenticated' : 'anonymous'}</p>
-              <p>Access token expires in: {tokens?.expiresIn ?? 0}s</p>
-              <p>Quick search: {globalSearchEnabled ? 'enabled' : 'disabled'}</p>
-            </article>
-
-            <article className="card">
-              <h2>User</h2>
-              {user ? (
-                <>
-                  <p>{user.displayName}</p>
-                  <p>{user.email}</p>
-                  <p>{user.role}</p>
-                </>
-              ) : (
-                <p>Brak załadowanego usera.</p>
-              )}
-            </article>
-          </div>
-
-          {emailFeatureSectionsEnabled ? (
-            <article className="card">
-              <h2>Runtime feature snapshot</h2>
-              <div className="grid grid--cards">
-                <p>Email delivery: {emailDeliveryEnabled ? 'enabled' : 'disabled'}</p>
-                <p>Two-factor auth: {emailTwoFactorEnabled ? 'enabled' : 'disabled'}</p>
-                <p>Admin controls: {isAdmin ? 'available' : 'hidden by role'}</p>
-              </div>
-            </article>
-          ) : null}
-
+      <p className="eyebrow">ClinicBook</p>
+      <h1>Witaj, {user?.displayName ?? 'użytkowniku'}</h1>
+      <p>Wybierz działanie, aby zarządzać swoimi wizytami lub grafikiem kliniki.</p>
+      <div className="grid grid--2">
+        <article className="card">
+          <h2>Pacjent</h2>
+          <p>Znajdź klinikę, zarezerwuj termin albo sprawdź i anuluj wizytę.</p>
           <div className="hero__actions">
-            <Link className="button" to="/profile">
-              Profile
-            </Link>
-            {isAdmin ? (
-              <>
-                <Link className="button button--ghost" to="/admin">
-                  Admin panel
-                </Link>
-                <Link className="button button--ghost" to="/admin/users">
-                  Users directory
-                </Link>
-              </>
-            ) : null}
+            <Link className="button" to="/clinics">Znajdź termin</Link>
+            <Link className="button button--ghost" to="/appointments">Moje wizyty</Link>
           </div>
-        </>
-      ) : (
-        <div className="page-state">
-          <h2>Dashboard overview is disabled</h2>
-          <p>This environment hides the dashboard shell via runtime config.</p>
-        </div>
-      )}
+        </article>
+        <article className="card">
+          <h2>Personel kliniki</h2>
+          <p>Skonfiguruj powtarzalny grafik lekarza lub przejdź do obsługi wizyt.</p>
+          <div className="hero__actions">
+            <Link className="button" to="/clinic-schedule">Grafik lekarzy</Link>
+            <Link className="button button--ghost" to="/appointments">Wizyty kliniki</Link>
+          </div>
+        </article>
+      </div>
     </section>
   );
 }

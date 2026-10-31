@@ -15,6 +15,10 @@ public class DoctorProfile
     public bool IsActive { get; private set; }
     public ICollection<DoctorSpecialization> DoctorSpecializations
     { get; private set; } = new List<DoctorSpecialization>();
+    public ICollection<Domain.Entities.Clinic.DoctorWeeklyAvailability> WeeklyAvailabilities
+    { get; private set; } = new List<Domain.Entities.Clinic.DoctorWeeklyAvailability>();
+    public ICollection<Domain.Entities.Clinic.Appointment> Appointments
+    { get; private set; } = new List<Domain.Entities.Clinic.Appointment>();
 
     private DoctorProfile() { } // Private constructor for EF Core
 

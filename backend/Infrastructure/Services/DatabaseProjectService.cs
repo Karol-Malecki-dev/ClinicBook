@@ -20,7 +20,10 @@ public sealed class DatabaseProjectService : IProjectService
 
     public async Task<ApiResponse<List<ProjectDto>>> GetUserProjectsAsync(Guid ownerId, bool includeArchived = false, string scope = "all")
     {
-        var query = _dbContext.Projects.AsNoTracking().Where(project => project.Members.Any(member => member.UserId == ownerId));
+        var query = _dbContext.Projects
+            .AsNoTracking()
+            .Include(project => project.Members)
+            .Where(project => project.Members.Any(member => member.UserId == ownerId));
         if (!includeArchived) query = query.Where(project => !project.IsArchived);
         if (scope.Equals("owned", StringComparison.OrdinalIgnoreCase)) query = query.Where(project => project.OwnerId == ownerId);
 
@@ -30,7 +33,13 @@ public sealed class DatabaseProjectService : IProjectService
 
     public async Task<ApiResponse<ProjectDto>> GetProjectAsync(Guid ownerId, Guid projectId, bool includeArchived = false)
     {
-        var project = await _dbContext.Projects.AsNoTracking().FirstOrDefaultAsync(item => item.Id == projectId && item.Members.Any(member => member.UserId == ownerId) && (includeArchived || !item.IsArchived));
+        var project = await _dbContext.Projects
+            .AsNoTracking()
+            .Include(item => item.Members)
+            .FirstOrDefaultAsync(item =>
+                item.Id == projectId
+                && item.Members.Any(member => member.UserId == ownerId)
+                && (includeArchived || !item.IsArchived));
         return project is null ? ApiResponse<ProjectDto>.Error(404, "Project not found.") : ApiResponse<ProjectDto>.Success(Map(project, ownerId));
     }
 
@@ -112,10 +121,10 @@ public sealed class DatabaseProjectService : IProjectService
         var assignedTasks = await _dbContext.ProjectTasks
             .Where(task => task.ProjectId == projectId && task.AssignedUserId == userId)
             .ToListAsync();
-
         foreach (var task in assignedTasks)
         {
             task.AssignedUserId = null;
+            task.UpdatedAt = DateTime.UtcNow;
         }
 
         _dbContext.ProjectMembers.Remove(member); await _dbContext.SaveChangesAsync();
