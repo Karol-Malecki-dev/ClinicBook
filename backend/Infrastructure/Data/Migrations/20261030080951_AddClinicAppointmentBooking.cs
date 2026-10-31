@@ -11,10 +11,6 @@ namespace Infrastructure.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_ClinicMemberships_UserId_ClinicId_Role",
-                table: "ClinicMemberships");
-
             migrationBuilder.AddColumn<string>(
                 name: "TimeZoneId",
                 table: "Clinics",
@@ -90,12 +86,6 @@ namespace Infrastructure.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_ClinicMemberships_UserId_ClinicId",
-                table: "ClinicMemberships",
-                columns: new[] { "UserId", "ClinicId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Appointments_ClinicId",
                 table: "Appointments",
                 column: "ClinicId");
@@ -133,19 +123,9 @@ namespace Infrastructure.Data.Migrations
             migrationBuilder.DropTable(
                 name: "DoctorWeeklyAvailabilities");
 
-            migrationBuilder.DropIndex(
-                name: "IX_ClinicMemberships_UserId_ClinicId",
-                table: "ClinicMemberships");
-
             migrationBuilder.DropColumn(
                 name: "TimeZoneId",
                 table: "Clinics");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ClinicMemberships_UserId_ClinicId_Role",
-                table: "ClinicMemberships",
-                columns: new[] { "UserId", "ClinicId", "Role" },
-                unique: true);
         }
     }
 }

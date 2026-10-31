@@ -163,6 +163,9 @@ describe('ClinicSchedule page', () => {
       );
     });
 
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Usuń' })).toBeEnabled();
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Usuń' }));
     await waitFor(() => {
       expect(mockedClinicApi.deleteWeeklyAvailability).toHaveBeenCalledWith(
