@@ -22,11 +22,11 @@ namespace Infrastructure.Data.Migrations
                             PARTITION BY "UserId", "ClinicId"
                             ORDER BY "IsActive" DESC,
                                 CASE "Role"
-                                    WHEN 5 THEN 0
-                                    WHEN 4 THEN 1
-                                    WHEN 3 THEN 2
-                                    WHEN 2 THEN 3
-                                    WHEN 1 THEN 4
+                                    WHEN 'Owner' THEN 0
+                                    WHEN 'ClinicAdministrator' THEN 1
+                                    WHEN 'Receptionist' THEN 2
+                                    WHEN 'Doctor' THEN 3
+                                    WHEN 'Patient' THEN 4
                                     ELSE 5
                                 END,
                                 "CreatedAt",
