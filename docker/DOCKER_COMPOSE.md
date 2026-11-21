@@ -24,6 +24,10 @@ Najważniejsze grupy zmiennych:
 - Frontend build: `FRONTEND_REACT_APP_API_URL` (passed to Vite as `VITE_API_URL`)
 - Mailpit: `MAILPIT_SMTP_PORT`, `MAILPIT_HTTP_PORT`
 
+## Kompatybilność istniejącej bazy PostgreSQL
+
+Domyślna nazwa bazy pozostaje `dotnetreact`, więc istniejący wolumen `postgres-data` nie traci danych podczas tej zmianą brandingową. Wartości `POSTGRES_DB` i `DEFAULT_CONNECTION` powinny nadal wskazywać tę samą nazwę. Migrowanie danych do nowej nazwy bazy jest osobną operacją i powinno być wykonane tylko z jawnie utworzoną kopią oraz migracją/dumpem, bez automatycznej zmiany nazwy wolumenu.
+
 ## Struktura naszego docker-compose.yml
 
 ### Wersja i services

@@ -3,7 +3,7 @@ services:
     image: postgres:16-alpine
     container_name: clinicbook-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-clinicbook}
+      POSTGRES_DB: ${POSTGRES_DB:-dotnetreact}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
@@ -13,7 +13,7 @@ services:
     networks:
       - clinicbook-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-clinicbook}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-dotnetreact}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -38,7 +38,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=${ASPNETCORE_URLS:-http://+:5000}
-      - ConnectionStrings__DefaultConnection=${DEFAULT_CONNECTION:-Host=db;Port=5432;Database=clinicbook;Username=postgres;Password=postgres}
+      - ConnectionStrings__DefaultConnection=${DEFAULT_CONNECTION:-Host=db;Port=5432;Database=dotnetreact;Username=postgres;Password=postgres}
       - Jwt__Secret=${JWT_SECRET:-local-development-secret-change-before-production-123456789}
       - Jwt__Issuer=${JWT_ISSUER:-ClinicBook-API}
       - Jwt__Audience=${JWT_AUDIENCE:-ClinicBook-WebApp}
