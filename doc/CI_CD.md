@@ -44,11 +44,13 @@ Workflow znajduje się w `.github/workflows/cd.yml`.
 Uruchamia się po pomyślnym zakończeniu CI dla `main` albo ręcznie. Buduje i publikuje dwa obrazy do GitHub Container Registry:
 
 ```text
-ghcr.io/<owner>/dotnet-react-starter-backend:<commit-sha>
-ghcr.io/<owner>/dotnet-react-starter-frontend:<commit-sha>
+ghcr.io/<owner>/clinicbook-backend:<commit-sha>
+ghcr.io/<owner>/clinicbook-frontend:<commit-sha>
 ```
 
 Dodatkowo każdy udany push do `main` aktualizuje tag `latest`.
+
+Nazwy obrazów są częścią publikowanego kontraktu GHCR. Zmiana nazwy wymaga jednoczesnej aktualizacji `.github/workflows/cd.yml` i tej dokumentacji.
 
 CD **nie wdraża jeszcze aplikacji na konkretny hosting**. To celowe: sposób uruchomienia zależy od wybranej platformy, na przykład Azure Container Apps, App Service, VPS albo Kubernetes. Obraz z tagiem SHA jest niezmienny i może zostać użyty jako wersja do wdrożenia.
 

@@ -2,6 +2,8 @@
 
 Full-stack clinic management and appointment booking application built with an ASP.NET Core 9 API, a React + TypeScript frontend, PostgreSQL, JWT authentication, Docker Compose, and automated tests.
 
+ClinicBook is developed one roadmap area at a time. The roadmaps cover clinic and staff foundations, availability, appointments, calendars, announcements, staff work organization, notifications, and portfolio integrations.
+
 ## Features
 
 - Clinic, doctor, patient, and clinic-membership workflows
@@ -121,6 +123,11 @@ Use `RuntimeConfigProvider` and `useFeatureAvailability()` to read them from the
 ### Run with Docker
 
 ```powershell
+<<<<<<< HEAD
+git clone https://github.com/Karol8284/ClinicBook.git
+Set-Location ClinicBook
+=======
+>>>>>>> origin/main
 Copy-Item .env.example .env
 docker compose up --build
 ```

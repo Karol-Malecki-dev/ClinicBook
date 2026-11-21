@@ -2,6 +2,8 @@
 
 Aplikacja full-stack do zarządzania kliniką i rezerwowania wizyt. Backend ASP.NET Core 9 udostępnia API z uwierzytelnianiem JWT, a frontend React + TypeScript obsługuje pacjentów i personel kliniki. PostgreSQL przechowuje grafik tygodniowy oraz wizyty jako terminy UTC wyświetlane w lokalnej strefie czasowej kliniki.
 
+ClinicBook jest rozwijany etapami zgodnymi z roadmapą: kliniki i role, dostępność, wizyty, kalendarze, ogłoszenia, organizacja pracy, powiadomienia oraz integracje portfolio.
+
 ## Najważniejsze funkcje
 
 - profile klinik, lekarzy i członkostw z rolami personelu;
@@ -72,6 +74,11 @@ Szczegółowy zakres i ograniczenia V1 znajdują się w [doc/CLINICBOOK_V1.md](d
 ### Docker Compose
 
 ```powershell
+<<<<<<< HEAD
+git clone https://github.com/Karol8284/ClinicBook.git
+Set-Location ClinicBook
+=======
+>>>>>>> origin/main
 Copy-Item .env.example .env
 docker compose up --build
 ```

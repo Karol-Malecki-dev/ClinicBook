@@ -45,8 +45,8 @@ jobs:
         id: meta
         run: |
           namespace="${IMAGE_NAMESPACE,,}"
-          echo "backend=${REGISTRY}/${namespace}/dotnet-react-starter-backend" >> "$GITHUB_OUTPUT"
-          echo "frontend=${REGISTRY}/${namespace}/dotnet-react-starter-frontend" >> "$GITHUB_OUTPUT"
+          echo "backend=${REGISTRY}/${namespace}/clinicbook-backend" >> "$GITHUB_OUTPUT"
+          echo "frontend=${REGISTRY}/${namespace}/clinicbook-frontend" >> "$GITHUB_OUTPUT"
           echo "tag=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push backend image

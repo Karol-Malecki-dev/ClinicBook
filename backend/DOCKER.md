@@ -70,16 +70,16 @@ COPY --from=builder /app/publish .
 
 ### Budowanie obrazu:
 ```bash
-docker build -t dotnet-react-starter:backend -f backend/Dockerfile backend/
+docker build -t clinicbook:backend -f backend/Dockerfile backend/
 ```
 - `docker build` = zbuduj obraz
-- `-t dotnet-react-starter:backend` = nazwa:tag
+- `-t clinicbook:backend` = nazwa:tag
 - `-f backend/Dockerfile` = ścieżka do pliku Dockerfile
 - `backend/` = kontekst (folder z kodem)
 
 ### Uruchamianie:
 ```bash
-docker run -p 5000:5000 dotnet-react-starter:backend
+docker run -p 5000:5000 clinicbook:backend
 ```
 - `-p 5000:5000` = mapowanie portów (host:container)
 - Port 5000 w kontenerze będzie dostępny na porcie 5000 na maszynie

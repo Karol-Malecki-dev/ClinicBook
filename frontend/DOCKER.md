@@ -106,12 +106,12 @@ Nginx to serwer HTTP. W naszym przypadku:
 
 ### Budowanie obrazu:
 ```bash
-docker build -t dotnet-react-starter:frontend -f frontend/Dockerfile frontend/
+docker build -t clinicbook:frontend -f frontend/Dockerfile frontend/
 ```
 
 ### Uruchamianie:
 ```bash
-docker run -p 3000:3000 dotnet-react-starter:frontend
+docker run -p 3000:3000 clinicbook:frontend
 ```
 - Otwórz `http://localhost:3000`
 
@@ -139,10 +139,10 @@ docker run -p 3000:3000 dotnet-react-starter:frontend
 
 ```bash
 # Usuń obraz
-docker rmi dotnet-react-starter:frontend
+docker rmi clinicbook:frontend
 
 # Przebuduj od zera
-docker build -t dotnet-react-starter:frontend frontend/
+docker build -t clinicbook:frontend frontend/
 ```
 
 ## Hot-reload w Development
@@ -171,6 +171,6 @@ docker logs <container_id>
 
 ### ❌ Port już w użyciu
 ```bash
-docker run -p 3001:3000 dotnet-react-starter:frontend
+docker run -p 3001:3000 clinicbook:frontend
 # Teraz dostęp przez port 3001, a w kontenerze 3000
 ```
