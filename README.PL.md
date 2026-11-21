@@ -74,11 +74,8 @@ Szczegółowy zakres i ograniczenia V1 znajdują się w [doc/CLINICBOOK_V1.md](d
 ### Docker Compose
 
 ```powershell
-<<<<<<< HEAD
 git clone https://github.com/Karol8284/ClinicBook.git
 Set-Location ClinicBook
-=======
->>>>>>> origin/main
 Copy-Item .env.example .env
 docker compose up --build
 ```
