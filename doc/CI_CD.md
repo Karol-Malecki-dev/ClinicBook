@@ -44,8 +44,8 @@ Workflow znajduje się w `.github/workflows/cd.yml`.
 Uruchamia się po pomyślnym zakończeniu CI dla `main` albo ręcznie. Buduje i publikuje dwa obrazy do GitHub Container Registry:
 
 ```text
-ghcr.io/<owner>/dotnet-react-starter-backend:<commit-sha>
-ghcr.io/<owner>/dotnet-react-starter-frontend:<commit-sha>
+ghcr.io/<owner>/clinicbook-backend:<commit-sha>
+ghcr.io/<owner>/clinicbook-frontend:<commit-sha>
 ```
 
 Dodatkowo każdy udany push do `main` aktualizuje tag `latest`.

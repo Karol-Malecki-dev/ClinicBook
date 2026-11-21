@@ -1,9 +1,9 @@
 services:
   db:
     image: postgres:16-alpine
-    container_name: dotnet-react-db
+    container_name: clinicbook-db
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-dotnetreact}
+      POSTGRES_DB: ${POSTGRES_DB:-clinicbook}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
@@ -11,37 +11,37 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-      - dotnet-react-network
+      - clinicbook-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-dotnetreact}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-clinicbook}"]
       interval: 10s
       timeout: 5s
       retries: 10
 
   mailpit:
     image: axllent/mailpit:v1.27
-    container_name: dotnet-react-mailpit
+    container_name: clinicbook-mailpit
     ports:
       - "${MAILPIT_SMTP_PORT:-1025}:1025"
       - "${MAILPIT_HTTP_PORT:-8025}:8025"
     networks:
-      - dotnet-react-network
+      - clinicbook-network
 
   # Backend API (.NET)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: dotnet-react-backend
+    container_name: clinicbook-backend
     ports:
       - "${BACKEND_HTTP_PORT:-5000}:5000"
     environment:
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Production}
       - ASPNETCORE_URLS=${ASPNETCORE_URLS:-http://+:5000}
-      - ConnectionStrings__DefaultConnection=${DEFAULT_CONNECTION:-Host=db;Port=5432;Database=dotnetreact;Username=postgres;Password=postgres}
+      - ConnectionStrings__DefaultConnection=${DEFAULT_CONNECTION:-Host=db;Port=5432;Database=clinicbook;Username=postgres;Password=postgres}
       - Jwt__Secret=${JWT_SECRET:-local-development-secret-change-before-production-123456789}
-      - Jwt__Issuer=${JWT_ISSUER:-Dotnet-React-Starter-API}
-      - Jwt__Audience=${JWT_AUDIENCE:-Dotnet-React-Starter-App}
+      - Jwt__Issuer=${JWT_ISSUER:-ClinicBook-API}
+      - Jwt__Audience=${JWT_AUDIENCE:-ClinicBook-WebApp}
       - Jwt__AccessTokenExpiresInMinutes=${JWT_ACCESS_TOKEN_EXPIRES_IN_MINUTES:-15}
       - Jwt__RefreshTokenExpiresInDays=${JWT_REFRESH_TOKEN_EXPIRES_IN_DAYS:-7}
       - Jwt__RefreshTokenCookieName=${JWT_REFRESH_TOKEN_COOKIE_NAME:-drs.refreshToken}
@@ -65,8 +65,8 @@ services:
       - EmailDelivery__Enabled=${EMAIL_DELIVERY_ENABLED:-true}
       - EmailDelivery__Host=${EMAIL_DELIVERY_HOST:-mailpit}
       - EmailDelivery__Port=${EMAIL_DELIVERY_PORT:-1025}
-      - EmailDelivery__FromAddress=${EMAIL_DELIVERY_FROM_ADDRESS:-noreply@dotnet-react-starter.local}
-      - EmailDelivery__FromName=${EMAIL_DELIVERY_FROM_NAME:-Dotnet React Starter}
+      - EmailDelivery__FromAddress=${EMAIL_DELIVERY_FROM_ADDRESS:-noreply@clinicbook.local}
+      - EmailDelivery__FromName=${EMAIL_DELIVERY_FROM_NAME:-ClinicBook}
       - EmailDelivery__Username=${EMAIL_DELIVERY_USERNAME:-}
       - EmailDelivery__Password=${EMAIL_DELIVERY_PASSWORD:-}
       - EmailDelivery__UseStartTls=${EMAIL_DELIVERY_USE_START_TLS:-false}
@@ -76,7 +76,7 @@ services:
       mailpit:
         condition: service_started
     networks:
-      - dotnet-react-network
+      - clinicbook-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:5000/health" ]
       interval: 30s
@@ -92,14 +92,14 @@ services:
       args:
         VITE_API_URL: ${FRONTEND_REACT_APP_API_URL:-/api}
         NODE_OPTIONS: ${FRONTEND_NODE_OPTIONS:---max_old_space_size=4096}
-    container_name: dotnet-react-frontend
+    container_name: clinicbook-frontend
     ports:
       - "${FRONTEND_HTTP_PORT:-3000}:3000"
     depends_on:
       backend:
         condition: service_healthy
     networks:
-      - dotnet-react-network
+      - clinicbook-network
     healthcheck:
       test: [ "CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/" ]
       interval: 10s
@@ -107,7 +107,7 @@ services:
       retries: 10
 
 networks:
-  dotnet-react-network:
+  clinicbook-network:
     driver: bridge
 
 volumes:

@@ -188,6 +188,23 @@ W projekcie warto utrzymywać kilka prostych zasad:
 - routing i shell powinny sterować dostępnością sekcji aplikacji
 - backend ma pozostać źródłem prawdy dla auth, ról i konfiguracji runtime
 
+## Roadmap Boundaries
+
+Rozwój ClinicBook jest podzielony na osobne bramki, aby każda warstwa domenowa mogła być implementowana i testowana przed kolejną:
+
+1. #4 - stabilizacja fundamentów, dokumentacji i Docker Compose;
+2. #10 - modele użytkowników, profili i ról kliniki;
+3. #9 - kliniki, gabinety, lekarze i specjalizacje;
+4. #6 - grafiki lekarzy i dostępne terminy;
+5. #7 - rezerwacja i obsługa wizyt;
+6. #5 - kalendarze pacjenta, lekarza i recepcji;
+7. #8 - ogłoszenia kliniki;
+8. #2 - organizacja pracy personelu;
+9. #3 - powiadomienia e-mail/SMS z kolejką i retry;
+10. #1 - mapa, integracje SMS i przygotowanie wdrożenia.
+
+Nowa funkcjonalność nie może obejść granic warstw backendu ani zastępować kontroli serwerowej autoryzacją ukrytą tylko po stronie UI.
+
 ## Testing Layers
 
 Projekt ma kilka poziomów testów:

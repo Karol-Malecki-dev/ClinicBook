@@ -54,10 +54,10 @@ backend:
 - `dockerfile: Dockerfile` = plik do budowania
 
 ```yaml
-container_name: dotnet-react-backend
+container_name: clinicbook-backend
 ```
 - Nazwa kontenera w systemie Docker
-- Przydatna do debugowania: `docker logs dotnet-react-backend`
+- Przydatna do debugowania: `docker logs clinicbook-backend`
 
 ```yaml
 ports:
@@ -95,7 +95,7 @@ mailpit:
 
 ```yaml
 networks:
-  - dotnet-react-network
+  - clinicbook-network
 ```
 - Kontener dołącza do sieci
 - Dzięki temu frontend może się połączyć do backendu po nazwie "backend"!
@@ -129,7 +129,7 @@ frontend:
     dockerfile: Dockerfile
     args:
       VITE_API_URL: ${FRONTEND_REACT_APP_API_URL:-/api}
-  container_name: dotnet-react-frontend
+  container_name: clinicbook-frontend
   ports:
     - "3000:3000"
 ```
@@ -146,7 +146,7 @@ depends_on:
 
 ```yaml
 networks:
-  - dotnet-react-network
+  - clinicbook-network
 ```
 - Dołącza do sieci aby komunikować się z backendem
 
@@ -154,7 +154,7 @@ networks:
 
 ```yaml
 networks:
-  dotnet-react-network:
+  clinicbook-network:
     driver: bridge
 ```
 - Tworzy wirtualną sieć dla kontenerów
@@ -299,7 +299,7 @@ const logLevel = process.env.LOG_LEVEL;
 
 1. ✅ Docker buduje backend (Dockerfile)
 2. ✅ Docker buduje frontend (Dockerfile)
-3. ✅ Docker tworzy network `dotnet-react-network`
+3. ✅ Docker tworzy network `clinicbook-network`
 4. ✅ Uruchamia backend (port 5000)
 5. ✅ Czeka aż backend będzie healthy
 6. ✅ Uruchamia frontend (port 3000)
@@ -319,7 +319,7 @@ ports:
 ```bash
 # Sprawdź network
 docker network ls
-docker network inspect dotnet-react-network
+docker network inspect clinicbook-network
 
 # Sprawdź czy backend w sieci
 docker-compose ps

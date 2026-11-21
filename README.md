@@ -1,8 +1,8 @@
-# .NET React Starter
+# ClinicBook
 
-Production-minded full-stack learning starter with ASP.NET Core 9 API, React + TypeScript frontend, JWT authentication, refresh-token rotation in HttpOnly cookies, Docker Compose, and automated test projects.
+ClinicBook is a full-stack ASP.NET Core 9 and React + TypeScript application for clinic booking and healthcare staff workflows. The current codebase provides the production-minded foundation and shared infrastructure: authentication, refresh-token rotation in HttpOnly cookies, role-aware access, PostgreSQL, Docker Compose, and automated test projects.
 
-This repository is a practical base for auth-heavy applications, admin dashboards, and future starter implementations. It already includes backend auth flows, protected frontend routes, role-aware access, Docker wiring, and test projects you can extend.
+ClinicBook is being developed one roadmap area at a time. The domain modules for clinics, users and roles, availability, appointments, calendars, announcements, staff work organization, notifications, and portfolio integrations are implemented and documented as separate roadmap gates.
 
 ## Features
 
@@ -117,8 +117,8 @@ Use `RuntimeConfigProvider` and `useFeatureAvailability()` to read them from the
 ### Run with Docker
 
 ```powershell
-git clone https://github.com/Karol8284/dotnet-react-starter.git
-Set-Location dotnet-react-starter
+git clone https://github.com/Karol8284/ClinicBook.git
+Set-Location ClinicBook
 Copy-Item .env.example .env
 docker compose up --build
 ```
