@@ -19,6 +19,8 @@ public class DoctorProfile
     { get; private set; } = new List<Domain.Entities.Clinic.DoctorWeeklyAvailability>();
     public ICollection<Domain.Entities.Clinic.Appointment> Appointments
     { get; private set; } = new List<Domain.Entities.Clinic.Appointment>();
+    public ICollection<Domain.Entities.Clinic.DoctorScheduleException> ScheduleExceptions
+    { get; private set; } = new List<Domain.Entities.Clinic.DoctorScheduleException>();
 
     private DoctorProfile() { } // Private constructor for EF Core
 

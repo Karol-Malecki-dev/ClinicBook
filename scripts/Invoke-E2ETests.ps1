@@ -53,6 +53,7 @@ try {
 
     Write-Host 'Starting PostgreSQL, backend, and frontend containers...'
     $stackStarted = $true
+    $env:DEMO_DATA_ENABLED = 'true'
     & docker compose up --build --wait --wait-timeout $WaitTimeoutSeconds --detach
     if ($LASTEXITCODE -ne 0) {
         throw "Docker Compose failed to start the application stack (exit code $LASTEXITCODE)."

@@ -73,6 +73,63 @@ public sealed class DoctorAvailabilityController : ApiControllerBase
         return StatusCode(result.StatusCode, result);
     }
 
+    [HttpGet("doctors/{doctorUserId:guid}/availability/exceptions")]
+    public async Task<ActionResult<ApiResponse<List<DoctorScheduleExceptionDto>>>> GetScheduleExceptions(
+        [FromRoute] Guid clinicId,
+        [FromRoute] Guid doctorUserId)
+    {
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return Unauthorized(
+                ApiResponse<List<DoctorScheduleExceptionDto>>.Error(401, "User not authenticated."));
+        }
+
+        var result = await _availabilityService.GetScheduleExceptionsAsync(
+            currentUserId,
+            clinicId,
+            doctorUserId);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpPost("doctors/{doctorUserId:guid}/availability/exceptions")]
+    public async Task<ActionResult<ApiResponse<DoctorScheduleExceptionDto>>> CreateScheduleException(
+        [FromRoute] Guid clinicId,
+        [FromRoute] Guid doctorUserId,
+        [FromBody] CreateDoctorScheduleExceptionRequestDto request)
+    {
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return Unauthorized(
+                ApiResponse<DoctorScheduleExceptionDto>.Error(401, "User not authenticated."));
+        }
+
+        var result = await _availabilityService.CreateScheduleExceptionAsync(
+            currentUserId,
+            clinicId,
+            doctorUserId,
+            request);
+        return StatusCode(result.StatusCode, result);
+    }
+
+    [HttpDelete("doctors/{doctorUserId:guid}/availability/exceptions/{exceptionId:guid}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteScheduleException(
+        [FromRoute] Guid clinicId,
+        [FromRoute] Guid doctorUserId,
+        [FromRoute] Guid exceptionId)
+    {
+        if (!TryGetCurrentUserId(out var currentUserId))
+        {
+            return Unauthorized(ApiResponse<bool>.Error(401, "User not authenticated."));
+        }
+
+        var result = await _availabilityService.DeleteScheduleExceptionAsync(
+            currentUserId,
+            clinicId,
+            doctorUserId,
+            exceptionId);
+        return StatusCode(result.StatusCode, result);
+    }
+
     [HttpPost("doctors/{doctorUserId:guid}/availability")]
     public async Task<ActionResult<ApiResponse<DoctorWeeklyAvailabilityDto>>> CreateWeeklyAvailability(
         [FromRoute] Guid clinicId,

@@ -16,6 +16,8 @@ V1 delivers the basic clinic appointment lifecycle on top of the existing accoun
 - The clinic chooses its time zone. The browser's current time zone is only a suggested value in the clinic form; the clinic can edit it before saving.
 - Weekly schedule times are local to the clinic. Appointment start and end instants are stored in UTC and responses include both UTC values and clinic-local display times.
 - A schedule window must fit within clinic opening hours, use 15-minute duration increments, and not overlap another window for that doctor in the same clinic.
+- Doctors and authorized clinic managers can add one-off local-time exceptions for a date: a closure subtracts slots, while additional availability adds slots.
+- An exception must fit within clinic opening hours. Closures cannot hide an existing booked appointment, and additional availability cannot be removed while it is the only schedule covering a booking.
 - Local times that are invalid or ambiguous during a daylight-saving transition are not offered as bookable slots.
 - A clinic's time zone cannot be changed after an appointment has been created. Clinic opening hours cannot be narrowed past existing doctor schedules.
 - Schedule windows repeat every week. V1 does not include holidays, one-off time off, or exception dates.
@@ -33,6 +35,9 @@ V1 delivers the basic clinic appointment lifecycle on top of the existing accoun
 | Create a schedule window | `POST /api/clinics/{clinicId}/doctors/{doctorUserId}/availability` |
 | Update a schedule window | `PUT /api/clinics/{clinicId}/doctors/{doctorUserId}/availability/{availabilityId}` |
 | Delete a schedule window | `DELETE /api/clinics/{clinicId}/doctors/{doctorUserId}/availability/{availabilityId}` |
+| List one-off schedule exceptions | `GET /api/clinics/{clinicId}/doctors/{doctorUserId}/availability/exceptions` |
+| Add a one-off schedule exception | `POST /api/clinics/{clinicId}/doctors/{doctorUserId}/availability/exceptions` |
+| Delete a one-off schedule exception | `DELETE /api/clinics/{clinicId}/doctors/{doctorUserId}/availability/exceptions/{exceptionId}` |
 | List bookable slots for a local date | `GET /api/clinics/{clinicId}/doctors/{doctorUserId}/availability/slots?date=YYYY-MM-DD` |
 | Book a slot returned by the availability API | `POST /api/clinics/{clinicId}/doctors/{doctorUserId}/appointments` |
 | List the current patient's appointments | `GET /api/appointments/mine` |
@@ -48,7 +53,7 @@ V1 does not collect a visit reason, diagnosis, clinical notes, or medical record
 
 ## Not included in V1
 
-- One-off availability exceptions, holidays, waitlists, and recurring appointments.
+- Holiday catalogs, waitlists, and recurring appointments. One-off closures and additional availability are supported.
 - Appointment reminders or transactional booking emails.
 - Billing, online payments, insurance, and electronic health records.
 - Automatic geocoding. The clinic must confirm or change the suggested time zone.
@@ -67,6 +72,11 @@ npm run build
 ```
 
 The API integration test host uses EF Core InMemory by default. InMemory tests do not verify PostgreSQL migrations, filtered unique indexes, or serializable booking races. Those checks require the opt-in PostgreSQL test mode below before production data is used.
+
+Docker smoke coverage also verifies a complete demo booking lifecycle against the
+running API and PostgreSQL. Enable `DEMO_DATA_ENABLED=true` before starting
+Compose; the idempotent seeder creates an owner, doctor, patient, clinic, and
+weekday availability. Demo data remains disabled by default.
 
 ### PostgreSQL integration tests
 

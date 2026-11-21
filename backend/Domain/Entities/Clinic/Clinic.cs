@@ -24,6 +24,7 @@ namespace Domain.Entities.Clinic
         public ICollection<ClinicRoom> Rooms { get; private set; } = new List<ClinicRoom>();
         public ICollection<DoctorWeeklyAvailability> DoctorWeeklyAvailabilities { get; private set; } = new List<DoctorWeeklyAvailability>();
         public ICollection<Appointment> Appointments { get; private set; } = new List<Appointment>();
+        public ICollection<DoctorScheduleException> ScheduleExceptions { get; private set; } = new List<DoctorScheduleException>();
 
         private Clinic() { } // Private constructor for EF Core
 

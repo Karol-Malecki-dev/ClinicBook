@@ -15,6 +15,9 @@ import type {
   DoctorProfileResponse,
   DoctorWeeklyAvailabilityDto,
   DoctorWeeklyAvailabilityResponse,
+  DoctorScheduleExceptionDto,
+  DoctorScheduleExceptionsResponse,
+  CreateDoctorScheduleExceptionRequest,
   SetDoctorWeeklyAvailabilityRequest,
 } from '../../types';
 import { httpClient, type HttpClient } from './HttpClient';
@@ -113,6 +116,36 @@ export class ClinicApi {
   ): Promise<ApiResponse<boolean>> {
     return this.client.delete<ApiResponse<boolean>>(
       `/clinics/${clinicId}/doctors/${doctorUserId}/availability/${availabilityId}`,
+    );
+  }
+
+  getScheduleExceptions(
+    clinicId: string,
+    doctorUserId: string,
+  ): Promise<DoctorScheduleExceptionsResponse> {
+    return this.client.get<DoctorScheduleExceptionsResponse>(
+      `/clinics/${clinicId}/doctors/${doctorUserId}/availability/exceptions`,
+    );
+  }
+
+  createScheduleException(
+    clinicId: string,
+    doctorUserId: string,
+    request: CreateDoctorScheduleExceptionRequest,
+  ): Promise<ApiResponse<DoctorScheduleExceptionDto>> {
+    return this.client.post<
+      ApiResponse<DoctorScheduleExceptionDto>,
+      CreateDoctorScheduleExceptionRequest
+    >(`/clinics/${clinicId}/doctors/${doctorUserId}/availability/exceptions`, request);
+  }
+
+  deleteScheduleException(
+    clinicId: string,
+    doctorUserId: string,
+    exceptionId: string,
+  ): Promise<ApiResponse<boolean>> {
+    return this.client.delete<ApiResponse<boolean>>(
+      `/clinics/${clinicId}/doctors/${doctorUserId}/availability/exceptions/${exceptionId}`,
     );
   }
 

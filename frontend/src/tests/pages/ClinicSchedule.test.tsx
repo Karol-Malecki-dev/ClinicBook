@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ClinicSchedule from '../../pages/ClinicSchedule';
 import { useAuth } from '../../hooks/useAuth';
 import { clinicApi, HttpError } from '../../services/api';
-import { ClinicRole } from '../../types';
+import { ClinicRole, ScheduleExceptionType } from '../../types';
 import type {
   ApiResponse,
   ClinicDoctorDto,
@@ -10,6 +10,7 @@ import type {
   ClinicMembershipDto,
   DoctorProfileDto,
   DoctorWeeklyAvailabilityDto,
+  DoctorScheduleExceptionDto,
 } from '../../types';
 import { vi } from 'vitest';
 
@@ -22,6 +23,9 @@ const clinicApiMocks = vi.hoisted(() => ({
   createWeeklyAvailability: vi.fn(),
   updateWeeklyAvailability: vi.fn(),
   deleteWeeklyAvailability: vi.fn(),
+  getScheduleExceptions: vi.fn(),
+  createScheduleException: vi.fn(),
+  deleteScheduleException: vi.fn(),
   addClinicMember: vi.fn(),
 }));
 
@@ -116,6 +120,20 @@ describe('ClinicSchedule page', () => {
     mockedClinicApi.createWeeklyAvailability.mockResolvedValue(response(weeklyAvailability));
     mockedClinicApi.updateWeeklyAvailability.mockResolvedValue(response(weeklyAvailability));
     mockedClinicApi.deleteWeeklyAvailability.mockResolvedValue(response(true));
+    mockedClinicApi.getScheduleExceptions.mockResolvedValue(response([]));
+    mockedClinicApi.createScheduleException.mockResolvedValue(response({
+      id: 'exception-1',
+      clinicId: clinic.id,
+      doctorProfileId: doctor.doctorProfileId,
+      doctorUserId: doctor.userId,
+      date: '2030-01-07',
+      type: ScheduleExceptionType.Closed,
+      startTime: '09:00:00',
+      endTime: '10:00:00',
+      slotDurationMinutes: 30,
+      reason: 'Training',
+    } satisfies DoctorScheduleExceptionDto));
+    mockedClinicApi.deleteScheduleException.mockResolvedValue(response(true));
     mockedClinicApi.addClinicMember.mockResolvedValue(response({
       id: 'membership-1',
       userId: 'new-doctor',
@@ -144,7 +162,36 @@ describe('ClinicSchedule page', () => {
         },
       );
     });
+
     expect(await screen.findByRole('status')).toHaveTextContent('Zakres grafiku został dodany.');
+  });
+
+  it('creates a one-off closure through the clinic API', async () => {
+    render(<ClinicSchedule />);
+
+    fireEvent.change(await screen.findByLabelText('Data'), {
+      target: { value: '2030-01-07' },
+    });
+    fireEvent.change(screen.getByLabelText('Powód (opcjonalnie)'), {
+      target: { value: 'Training' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Dodaj wyjątek' }));
+
+    await waitFor(() => {
+      expect(mockedClinicApi.createScheduleException).toHaveBeenCalledWith(
+        clinic.id,
+        doctor.userId,
+        {
+          date: '2030-01-07',
+          type: ScheduleExceptionType.Closed,
+          startTime: '09:00:00',
+          endTime: '10:00:00',
+          slotDurationMinutes: 30,
+          reason: 'Training',
+        },
+      );
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent('Wyjątek zamknięcia został dodany.');
   });
 
   it('edits and deletes an existing schedule window', async () => {

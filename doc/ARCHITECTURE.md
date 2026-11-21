@@ -102,6 +102,7 @@ Najważniejsze tabele/encje:
 - `PatientProfiles`
 - `Specializations`
 - `DoctorWeeklyAvailabilities`
+- `DoctorScheduleExceptions`
 - `Appointments`
 - `Projects`
 - `ProjectMembers`
@@ -122,6 +123,7 @@ Relacje są proste i czytelne:
 - usunięcie przypisanego użytkownika ustawia `AssignedUserId` na `NULL`
 - `ClinicMembership` łączy konto z kliniką i rolą w tej klinice
 - `DoctorWeeklyAvailability` przechowuje lokalne okno tygodniowe dla lekarza w klinice
+- `DoctorScheduleException` przechowuje jednorazową zmianę lokalnej dostępności lekarza: zamknięcie albo dodatkowe okno
 - `Appointment` łączy klinikę, profil lekarza i konto pacjenta; jego przedział czasu jest przechowywany jako UTC
 
 ### Project And ProjectTask Domain
@@ -178,6 +180,9 @@ UTC. Odpowiedzi API zwracają także czasy lokalne do wyświetlenia.
 Grafik tygodniowy jest powtarzalny, ograniczony godzinami otwarcia kliniki i nie
 może nakładać się z innym oknem tego samego lekarza w tej klinice. Terminy
 niejednoznaczne lub nieistniejące podczas zmiany czasu nie są udostępniane.
+Wyjątek jednorazowy działa na konkretną datę kliniki: zamknięcie odejmuje
+nakładające się sloty, a dodatkowa dostępność je dodaje. Zmiana nie może
+unieważnić istniejącej rezerwacji; API blokuje konfliktujący wyjątek.
 Rezerwacja ponownie sprawdza aktualny grafik i zajętość, a PostgreSQL używa
 transakcji serializable i unikalnego indeksu aktywnych wizyt dla ochrony przed
 równoczesnym podwójnym zapisem.

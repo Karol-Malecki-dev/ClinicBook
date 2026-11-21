@@ -8,6 +8,9 @@ import { vi } from 'vitest';
 
 vi.mock('../hooks/useAuth');
 vi.mock('../hooks/useFeatureAvailability');
+vi.mock('../context/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
+}));
 vi.mock('../context/RuntimeConfigContext', () => ({
   RuntimeConfigProvider: ({ children }: { children: ReactNode }) => children,
 }));

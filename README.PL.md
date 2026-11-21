@@ -86,6 +86,22 @@ Lokalne adresy:
 
 Compose uruchamia PostgreSQL, Mailpit, backend i frontend. Wartości domyślne są przeznaczone do lokalnego developmentu. Sekrety środowiska docelowego należy dostarczać przez konfigurację hostingu lub bezpieczny magazyn sekretów.
 
+### Dane demonstracyjne
+
+Demo jest wyłączone domyślnie i nigdy nie powinno być włączone w środowisku produkcyjnym.
+W jednorazowym lokalnym środowisku ustaw `DEMO_DATA_ENABLED=true` przed uruchomieniem Compose.
+Seeder jest idempotentny i tworzy klinikę, właściciela, lekarza, pacjenta oraz grafik poniedziałek-piątek.
+
+Domyślne konta:
+
+| Rola | E-mail | Hasło |
+|---|---|---|
+| właściciel | `owner@clinicbook.local` | `ClinicBook123!` |
+| lekarz | `doctor@clinicbook.local` | `ClinicBook123!` |
+| pacjent | `patient@clinicbook.local` | `ClinicBook123!` |
+
+Wartości można zmienić przez zmienne `DEMO_*` opisane w `.env.example`.
+
 ### Uruchomienie lokalne bez Dockera
 
 Backend:
@@ -140,6 +156,9 @@ Smoke testy E2E wymagają uruchomionego środowiska:
 .\scripts\Invoke-E2ETests.ps1
 ```
 
+Przy aktywnych danych demonstracyjnych test E2E dodatkowo weryfikuje pełny przepływ:
+wyszukanie terminu, rezerwację pacjenta, odczyt przez właściciela kliniki i anulowanie.
+
 Frontend:
 
 ```powershell
@@ -159,7 +178,7 @@ Workflow CD publikuje obrazy z tagiem SHA oraz `latest`. Nie wykonuje jeszcze wd
 
 ## Znane ograniczenia
 
-- grafik tygodniowy nie obsługuje wyjątków, urlopów ani świąt;
+- grafik obsługuje jednorazowe zamknięcia i dodatkową dostępność, ale nie posiada katalogu urlopów ani świąt;
 - V1 nie wysyła powiadomień o rezerwacji i nie przechowuje powodów wizyt, diagnoz ani dokumentacji medycznej;
 - zmiana strefy kliniki po utworzeniu wizyty jest blokowana;
 - frontend korzysta z Vite i Vitest; pozostałe podatności React Routera wymagają osobnej decyzji dotyczącej migracji do wersji 7;

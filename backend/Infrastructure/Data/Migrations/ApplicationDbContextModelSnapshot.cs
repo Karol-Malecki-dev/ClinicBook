@@ -304,6 +304,52 @@ namespace Infrastructure.Data.Migrations
                     b.ToTable("ClinicRooms", (string)null);
                 });
 
+            modelBuilder.Entity("Domain.Entities.Clinic.DoctorScheduleException", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ClinicId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
+                    b.Property<Guid>("DoctorProfileId")
+                        .HasColumnType("uuid");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<int>("SlotDurationMinutes")
+                        .HasColumnType("integer");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time without time zone");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DoctorProfileId");
+
+                    b.HasIndex("ClinicId", "DoctorProfileId", "Date", "Type", "StartTime")
+                        .HasDatabaseName("IX_DoctorScheduleException_Doctor_Date_Type_Start");
+
+                    b.ToTable("DoctorScheduleExceptions", (string)null);
+                });
+
             modelBuilder.Entity("Domain.Entities.Clinic.DoctorWeeklyAvailability", b =>
                 {
                     b.Property<Guid>("Id")
@@ -834,6 +880,25 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Clinic");
                 });
 
+            modelBuilder.Entity("Domain.Entities.Clinic.DoctorScheduleException", b =>
+                {
+                    b.HasOne("Domain.Entities.Clinic.Clinic", "Clinic")
+                        .WithMany("ScheduleExceptions")
+                        .HasForeignKey("ClinicId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Entities.Doctor.DoctorProfile", "DoctorProfile")
+                        .WithMany("ScheduleExceptions")
+                        .HasForeignKey("DoctorProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Clinic");
+
+                    b.Navigation("DoctorProfile");
+                });
+
             modelBuilder.Entity("Domain.Entities.Clinic.DoctorWeeklyAvailability", b =>
                 {
                     b.HasOne("Domain.Entities.Clinic.Clinic", "Clinic")
@@ -1009,6 +1074,8 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Memberships");
 
                     b.Navigation("Rooms");
+
+                    b.Navigation("ScheduleExceptions");
                 });
 
             modelBuilder.Entity("Domain.Entities.Doctor.DoctorProfile", b =>
@@ -1016,6 +1083,8 @@ namespace Infrastructure.Data.Migrations
                     b.Navigation("Appointments");
 
                     b.Navigation("DoctorSpecializations");
+
+                    b.Navigation("ScheduleExceptions");
 
                     b.Navigation("WeeklyAvailabilities");
                 });

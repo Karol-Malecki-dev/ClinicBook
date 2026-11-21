@@ -68,3 +68,38 @@ The commands should complete successfully on a clean working tree with the targe
 ## Conclusion
 
 The codebase is suitable for a release candidate. It should not be described as universally production-ready until hosting, secrets, security configuration, dependency decisions, and operational procedures are validated for the selected deployment platform.
+
+## Gate 1 Verification - 2026-11-21
+
+| Area | Command | Result | Status |
+|---|---|---:|---|
+| Backend unit tests | `dotnet test backend/UnitTests/UnitTests.csproj --configuration Release --no-restore` | 167/167 passed | PASS |
+| Backend integration tests, InMemory | `dotnet test backend/IntegrationTests/IntegrationTests.csproj --configuration Release --no-restore` | 57 passed, 2 PostgreSQL-only skipped | PASS |
+| Booking tests, PostgreSQL | `CLINICBOOK_TEST_POSTGRES_CONNECTION_STRING=... dotnet test ... --filter FullyQualifiedName~ClinicBookingApiIntegrationTests` | 17/17 passed, including migration and booking-race coverage | PASS |
+| Frontend tests | `npm run test:once -- --reporter=dot` in `frontend/` | 79/79 passed | PASS |
+| Frontend production build | `npm run build` in `frontend/` | Passed | PASS |
+| Live Docker E2E | `dotnet test backend/E2ETests/E2ETests.csproj --configuration Release` | 4/4 passed | PASS |
+
+Gate 1 also adds opt-in, idempotent demo data and verifies booking, staff
+visibility, and cancellation against the running Docker Compose stack. Demo
+credentials are documented in `README.PL.md` and remain disabled by default.
+
+Remaining release risks include the React Router v7 migration, frontend
+production audit findings, AutoMapper audit findings, and environment-specific
+hosting, secret, migration, backup, monitoring, and rollback procedures.
+
+## Gate 2 Verification - 2026-11-21
+
+Schedule exceptions add one-off closures and additional doctor availability.
+Closed ranges remove slots and cannot conflict with booked appointments.
+Additional availability can be removed only when each existing booking remains
+covered by the weekly schedule. The EF migration snapshot has no pending model
+changes.
+
+| Area | Result | Status |
+|---|---:|---|
+| Backend unit tests | 169/169 passed | PASS |
+| Backend integration tests, InMemory | 58 passed, 2 PostgreSQL-only skipped | PASS |
+| Booking tests, PostgreSQL | 18/18 passed | PASS |
+| Frontend tests | 80/80 passed | PASS |
+| Frontend production build | Passed | PASS |

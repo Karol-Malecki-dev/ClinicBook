@@ -100,6 +100,33 @@ export interface SetDoctorWeeklyAvailabilityRequest {
   slotDurationMinutes: number;
 }
 
+export enum ScheduleExceptionType {
+  Closed = 1,
+  Available = 2,
+}
+
+export interface DoctorScheduleExceptionDto {
+  id: string;
+  clinicId: string;
+  doctorProfileId: string;
+  doctorUserId: string;
+  date: string;
+  type: ScheduleExceptionType;
+  startTime: string;
+  endTime: string;
+  slotDurationMinutes: number;
+  reason?: string | null;
+}
+
+export interface CreateDoctorScheduleExceptionRequest {
+  date: string;
+  type: ScheduleExceptionType;
+  startTime: string;
+  endTime: string;
+  slotDurationMinutes: number;
+  reason?: string;
+}
+
 export interface AvailabilitySlotDto {
   startsAtUtc: string;
   endsAtUtc: string;
@@ -144,6 +171,7 @@ export type ClinicMembersResponse = ApiResponse<ClinicMembershipDto[]>;
 export type ClinicDoctorsResponse = ApiResponse<ClinicDoctorDto[]>;
 export type DoctorProfileResponse = ApiResponse<DoctorProfileDto>;
 export type DoctorWeeklyAvailabilityResponse = ApiResponse<DoctorWeeklyAvailabilityDto[]>;
+export type DoctorScheduleExceptionsResponse = ApiResponse<DoctorScheduleExceptionDto[]>;
 export type AvailabilitySlotsResponse = ApiResponse<AvailabilitySlotDto[]>;
 export type AppointmentResponse = ApiResponse<AppointmentDto>;
 export type AppointmentsResponse = ApiResponse<AppointmentDto[]>;

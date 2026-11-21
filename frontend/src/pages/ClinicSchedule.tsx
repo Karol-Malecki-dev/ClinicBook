@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { clinicApi, HttpError } from '../services/api';
 import { useAuth } from '../hooks/useAuth';
-import { ClinicRole } from '../types';
+import { ClinicRole, ScheduleExceptionType } from '../types';
 import type {
   ClinicDoctorDto,
   ClinicDto,
   DoctorProfileDto,
+  DoctorScheduleExceptionDto,
   DoctorWeeklyAvailabilityDto,
   SetDoctorWeeklyAvailabilityRequest,
 } from '../types';
@@ -29,6 +30,7 @@ export default function ClinicSchedule() {
   const [clinics, setClinics] = useState<ClinicDto[]>([]);
   const [doctors, setDoctors] = useState<ClinicDoctorDto[]>([]);
   const [availability, setAvailability] = useState<DoctorWeeklyAvailabilityDto[]>([]);
+  const [scheduleExceptions, setScheduleExceptions] = useState<DoctorScheduleExceptionDto[]>([]);
   const [doctorProfile, setDoctorProfile] = useState<DoctorProfileDto | null>(null);
   const [clinicId, setClinicId] = useState('');
   const [doctorUserId, setDoctorUserId] = useState('');
@@ -36,6 +38,12 @@ export default function ClinicSchedule() {
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
   const [slotDurationMinutes, setSlotDurationMinutes] = useState(30);
+  const [exceptionDate, setExceptionDate] = useState('');
+  const [exceptionType, setExceptionType] = useState(ScheduleExceptionType.Closed);
+  const [exceptionStartTime, setExceptionStartTime] = useState('09:00');
+  const [exceptionEndTime, setExceptionEndTime] = useState('10:00');
+  const [exceptionSlotDuration, setExceptionSlotDuration] = useState(30);
+  const [exceptionReason, setExceptionReason] = useState('');
   const [memberEmail, setMemberEmail] = useState('');
   const [memberRole, setMemberRole] = useState(ClinicRole.Doctor);
   const [editingId, setEditingId] = useState('');
@@ -43,13 +51,16 @@ export default function ClinicSchedule() {
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingDoctors, setLoadingDoctors] = useState(false);
   const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [loadingExceptions, setLoadingExceptions] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingException, setSavingException] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const doctorsRequestId = useRef(0);
   const availabilityRequestId = useRef(0);
+  const exceptionsRequestId = useRef(0);
   const selectedContext = useRef({ clinicId, doctorUserId });
   selectedContext.current = { clinicId, doctorUserId };
   const selectedClinicId = useRef(clinicId);
@@ -143,6 +154,7 @@ export default function ClinicSchedule() {
       setDoctors([]);
       setDoctorUserId('');
       setAvailability([]);
+      setScheduleExceptions([]);
       setLoadingDoctors(false);
       return;
     }
@@ -240,6 +252,52 @@ export default function ClinicSchedule() {
       availabilityRequestId.current += 1;
     };
   }, [loadAvailability]);
+
+  const loadScheduleExceptions = useCallback(async () => {
+    if (selectedContext.current.clinicId !== clinicId
+      || selectedContext.current.doctorUserId !== doctorUserId) {
+      return;
+    }
+
+    const requestId = ++exceptionsRequestId.current;
+    const isCurrentRequest = () => requestId === exceptionsRequestId.current
+      && selectedContext.current.clinicId === clinicId
+      && selectedContext.current.doctorUserId === doctorUserId;
+
+    if (!clinicId || !doctorUserId) {
+      setScheduleExceptions([]);
+      setLoadingExceptions(false);
+      return;
+    }
+
+    setLoadingExceptions(true);
+    try {
+      const response = await clinicApi.getScheduleExceptions(clinicId, doctorUserId);
+      if (!response.data) {
+        throw new Error('API nie zwróciło wyjątków grafiku.');
+      }
+
+      if (isCurrentRequest()) {
+        setScheduleExceptions(response.data);
+      }
+    } catch (loadError) {
+      if (isCurrentRequest()) {
+        setError(getErrorMessage(loadError));
+        setScheduleExceptions([]);
+      }
+    } finally {
+      if (isCurrentRequest()) {
+        setLoadingExceptions(false);
+      }
+    }
+  }, [clinicId, doctorUserId]);
+
+  useEffect(() => {
+    void loadScheduleExceptions();
+    return () => {
+      exceptionsRequestId.current += 1;
+    };
+  }, [loadScheduleExceptions]);
 
   useEffect(() => {
     resetForm();
@@ -377,6 +435,55 @@ export default function ClinicSchedule() {
     }
   };
 
+  const submitScheduleException = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!clinicId || !doctorUserId || !exceptionDate) {
+      return;
+    }
+
+    setSavingException(true);
+    setError('');
+    setNotice('');
+    try {
+      await clinicApi.createScheduleException(clinicId, doctorUserId, {
+        date: exceptionDate,
+        type: exceptionType,
+        startTime: `${exceptionStartTime}:00`,
+        endTime: `${exceptionEndTime}:00`,
+        slotDurationMinutes: exceptionSlotDuration,
+        reason: exceptionReason.trim() || undefined,
+      });
+      setExceptionReason('');
+      setNotice(exceptionType === ScheduleExceptionType.Closed
+        ? 'Wyjątek zamknięcia został dodany.'
+        : 'Dodatkowa dostępność została dodana.');
+      await loadScheduleExceptions();
+    } catch (saveError) {
+      setError(getErrorMessage(saveError));
+    } finally {
+      setSavingException(false);
+    }
+  };
+
+  const deleteScheduleException = async (exceptionId: string) => {
+    if (!clinicId || !doctorUserId) {
+      return;
+    }
+
+    setSavingException(true);
+    setError('');
+    setNotice('');
+    try {
+      await clinicApi.deleteScheduleException(clinicId, doctorUserId, exceptionId);
+      setNotice('Wyjątek grafiku został usunięty.');
+      await loadScheduleExceptions();
+    } catch (deleteError) {
+      setError(getErrorMessage(deleteError));
+    } finally {
+      setSavingException(false);
+    }
+  };
+
   return (
     <section className="page-shell">
       <p className="eyebrow">ClinicBook</p>
@@ -437,9 +544,11 @@ export default function ClinicSchedule() {
                 onChange={(event) => {
                   doctorsRequestId.current += 1;
                   availabilityRequestId.current += 1;
+                  exceptionsRequestId.current += 1;
                   setDoctors([]);
                   setDoctorUserId('');
                   setAvailability([]);
+                  setScheduleExceptions([]);
                   resetForm();
                   setClinicId(event.target.value);
                 }}
@@ -456,7 +565,9 @@ export default function ClinicSchedule() {
                 value={doctorUserId}
                 onChange={(event) => {
                   availabilityRequestId.current += 1;
+                  exceptionsRequestId.current += 1;
                   setAvailability([]);
+                  setScheduleExceptions([]);
                   resetForm();
                   setDoctorUserId(event.target.value);
                 }}
@@ -470,6 +581,123 @@ export default function ClinicSchedule() {
                 ))}
               </select>
             </div>
+
+            {doctorUserId ? (
+              <div className="grid grid--2">
+              <div className="card">
+                <h2>Dodaj wyjątek jednorazowy</h2>
+                <p>
+                  Zamknięcie usuwa terminy w podanym zakresie. Dodatkowa dostępność
+                  uzupełnia grafik tygodniowy na jedną datę.
+                </p>
+                <form className="form" onSubmit={(event) => void submitScheduleException(event)}>
+                  <div className="grid grid--2">
+                    <div className="field">
+                      <label className="field__label" htmlFor="exception-date">Data</label>
+                      <input
+                        id="exception-date"
+                        type="date"
+                        required
+                        value={exceptionDate}
+                        onChange={(event) => setExceptionDate(event.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label className="field__label" htmlFor="exception-type">Typ</label>
+                      <select
+                        id="exception-type"
+                        value={exceptionType}
+                        onChange={(event) => setExceptionType(
+                          Number(event.target.value) as ScheduleExceptionType,
+                        )}
+                      >
+                        <option value={ScheduleExceptionType.Closed}>Zamknięte</option>
+                        <option value={ScheduleExceptionType.Available}>Dodatkowa dostępność</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid--2">
+                    <div className="field">
+                      <label className="field__label" htmlFor="exception-start">Od (wyjątek)</label>
+                      <input
+                        id="exception-start"
+                        type="time"
+                        required
+                        value={exceptionStartTime}
+                        onChange={(event) => setExceptionStartTime(event.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label className="field__label" htmlFor="exception-end">Do (wyjątek)</label>
+                      <input
+                        id="exception-end"
+                        type="time"
+                        required
+                        value={exceptionEndTime}
+                        onChange={(event) => setExceptionEndTime(event.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="field">
+                    <label className="field__label" htmlFor="exception-slot-duration">
+                      Długość wizyty (min)
+                    </label>
+                    <select
+                      id="exception-slot-duration"
+                      value={exceptionSlotDuration}
+                      onChange={(event) => setExceptionSlotDuration(Number(event.target.value))}
+                    >
+                      {[15, 30, 45, 60, 90, 120].map((duration) => (
+                        <option key={duration} value={duration}>{duration}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field">
+                    <label className="field__label" htmlFor="exception-reason">Powód (opcjonalnie)</label>
+                    <input
+                      id="exception-reason"
+                      maxLength={300}
+                      value={exceptionReason}
+                      onChange={(event) => setExceptionReason(event.target.value)}
+                    />
+                  </div>
+                  <button className="button" type="submit" disabled={savingException}>
+                    {savingException ? 'Zapisywanie...' : 'Dodaj wyjątek'}
+                  </button>
+                </form>
+              </div>
+
+              <div className="stack">
+                <h2>Wyjątki grafiku</h2>
+                {loadingExceptions ? <p>Ładowanie wyjątków...</p> : scheduleExceptions.length === 0 ? (
+                  <p>Brak wyjątków jednorazowych.</p>
+                ) : scheduleExceptions.map((item) => (
+                  <article className="card" key={item.id}>
+                    <h3>
+                      {item.date} · {item.type === ScheduleExceptionType.Closed
+                        ? 'Zamknięte'
+                        : 'Dodatkowa dostępność'}
+                    </h3>
+                    <p>
+                      {item.startTime.slice(0, 5)}–{item.endTime.slice(0, 5)}
+                      {item.type === ScheduleExceptionType.Available
+                        ? ` · slot ${item.slotDurationMinutes} min`
+                        : ''}
+                    </p>
+                    {item.reason ? <p>{item.reason}</p> : null}
+                    <button
+                      className="button button--danger"
+                      type="button"
+                      disabled={savingException}
+                      onClick={() => void deleteScheduleException(item.id)}
+                    >
+                      Usuń wyjątek
+                    </button>
+                  </article>
+                ))}
+              </div>
+              </div>
+            ) : null}
           </div>
 
           {selectedClinic ? <p>Strefa kliniki: {selectedClinic.timeZoneId}</p> : null}

@@ -822,6 +822,118 @@ public sealed class ClinicBookingApiIntegrationTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, cancelResponse.StatusCode);
     }
 
+    [Fact]
+    public async Task Schedule_exceptions_add_and_remove_slots_without_overwriting_bookings()
+    {
+        var scenario = await CreateClinicScenarioAsync("schedule-exceptions");
+        var date = NextMondayInClinicTime();
+        var exceptionsUrl =
+            $"/api/clinics/{scenario.ClinicId}/doctors/{scenario.DoctorUserId}/availability/exceptions";
+
+        SetBearerToken(scenario.DoctorTokens.AccessToken);
+        var scheduleResponse = await _client.PostAsJsonAsync(
+            AvailabilityUrl(scenario),
+            CreateAvailabilityRequest(
+                dayOfWeek: (int)date.DayOfWeek,
+                startTime: "09:00:00",
+                endTime: "11:00:00"));
+        Assert.Equal(HttpStatusCode.Created, scheduleResponse.StatusCode);
+        var schedule = await scheduleResponse.Content
+            .ReadFromJsonAsync<ApiResponse<DoctorWeeklyAvailabilityDto>>();
+        Assert.NotNull(schedule?.Data);
+
+        var additionalResponse = await _client.PostAsJsonAsync(
+            exceptionsUrl,
+            new CreateDoctorScheduleExceptionRequestDto
+            {
+                Date = date,
+                Type = ScheduleExceptionType.Available,
+                StartTime = new TimeOnly(11, 0),
+                EndTime = new TimeOnly(12, 0),
+                SlotDurationMinutes = 30,
+                Reason = "Additional clinic day"
+            });
+        Assert.Equal(HttpStatusCode.Created, additionalResponse.StatusCode);
+        var additional = await additionalResponse.Content
+            .ReadFromJsonAsync<ApiResponse<DoctorScheduleExceptionDto>>();
+        Assert.NotNull(additional?.Data);
+
+        var overlappingAdditionalResponse = await _client.PostAsJsonAsync(
+            exceptionsUrl,
+            new CreateDoctorScheduleExceptionRequestDto
+            {
+                Date = date,
+                Type = ScheduleExceptionType.Available,
+                StartTime = new TimeOnly(9, 0),
+                EndTime = new TimeOnly(9, 30),
+                SlotDurationMinutes = 30,
+                Reason = "Covered by weekly schedule too"
+            });
+        Assert.Equal(HttpStatusCode.Created, overlappingAdditionalResponse.StatusCode);
+        var overlappingAdditional = await overlappingAdditionalResponse.Content
+            .ReadFromJsonAsync<ApiResponse<DoctorScheduleExceptionDto>>();
+        Assert.NotNull(overlappingAdditional?.Data);
+
+        var closureResponse = await _client.PostAsJsonAsync(
+            exceptionsUrl,
+            new CreateDoctorScheduleExceptionRequestDto
+            {
+                Date = date,
+                Type = ScheduleExceptionType.Closed,
+                StartTime = new TimeOnly(9, 30),
+                EndTime = new TimeOnly(10, 30),
+                SlotDurationMinutes = 30,
+                Reason = "Training"
+            });
+        Assert.Equal(HttpStatusCode.Created, closureResponse.StatusCode);
+
+        SetBearerToken(scenario.PatientTokens.AccessToken);
+        var slotsResponse = await _client.GetAsync(AvailabilitySlotsUrl(scenario, date));
+        slotsResponse.EnsureSuccessStatusCode();
+        var slots = await slotsResponse.Content
+            .ReadFromJsonAsync<ApiResponse<List<AvailabilitySlotDto>>>();
+        Assert.Equal(
+            new[] { "09:00", "10:30", "11:00", "11:30" },
+            slots!.Data!.Select(slot => slot.LocalStart.ToString("HH:mm")).ToArray());
+
+        var availableSlots = slots.Data!;
+        foreach (var targetTime in new[] { new TimeOnly(9, 0), new TimeOnly(11, 0) })
+        {
+            var slot = Assert.Single(
+                availableSlots,
+                item => TimeOnly.FromDateTime(item.LocalStart) == targetTime);
+            var bookingResponse = await _client.PostAsJsonAsync(
+                $"/api/clinics/{scenario.ClinicId}/doctors/{scenario.DoctorUserId}/appointments",
+                new CreateAppointmentRequestDto { StartsAtUtc = slot.StartsAtUtc });
+            Assert.Equal(HttpStatusCode.Created, bookingResponse.StatusCode);
+        }
+
+        SetBearerToken(scenario.DoctorTokens.AccessToken);
+        var conflictingClosureResponse = await _client.PostAsJsonAsync(
+            exceptionsUrl,
+            new CreateDoctorScheduleExceptionRequestDto
+            {
+                Date = date,
+                Type = ScheduleExceptionType.Closed,
+                StartTime = new TimeOnly(9, 0),
+                EndTime = new TimeOnly(9, 30),
+                SlotDurationMinutes = 30
+            });
+        Assert.Equal(HttpStatusCode.Conflict, conflictingClosureResponse.StatusCode);
+
+        var deleteAdditionalResponse = await _client.DeleteAsync(
+            $"{exceptionsUrl}/{additional.Data.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, deleteAdditionalResponse.StatusCode);
+
+        var deleteOverlappingAdditionalResponse = await _client.DeleteAsync(
+            $"{exceptionsUrl}/{overlappingAdditional.Data.Id}");
+        Assert.Equal(HttpStatusCode.OK, deleteOverlappingAdditionalResponse.StatusCode);
+
+        var deleteWeeklyResponse = await _client.DeleteAsync(
+            $"{AvailabilityUrl(scenario)}/{schedule.Data.Id}");
+        Assert.Equal(HttpStatusCode.Conflict, deleteWeeklyResponse.StatusCode);
+    }
+
     private async Task<ClinicTestScenario> CreateClinicScenarioAsync(
         string prefix,
         string openTime = "08:00:00",

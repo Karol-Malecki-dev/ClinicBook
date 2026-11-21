@@ -12,6 +12,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Domain.Interfaces;
 using Infrastructure.Data;
+using Infrastructure.Data.Seeds;
 using Infrastructure.Services;
 using Infrastructure.Services.Clinic;
 using Infrastructure.Services.Doctor;
@@ -123,6 +124,32 @@ namespace API.Services
                     "Email delivery from address is required when email delivery is enabled.")
                 .ValidateOnStart();
 
+            services.AddOptions<DemoDataSettings>()
+                .Bind(configuration.GetSection("Demo"))
+                .Validate(
+                    settings => !settings.Enabled || !string.IsNullOrWhiteSpace(settings.OwnerEmail),
+                    "Demo owner email is required when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled || !string.IsNullOrWhiteSpace(settings.DoctorEmail),
+                    "Demo doctor email is required when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled || !string.IsNullOrWhiteSpace(settings.PatientEmail),
+                    "Demo patient email is required when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled
+                        || (!string.IsNullOrWhiteSpace(settings.Password) && settings.Password.Length >= 12),
+                    "Demo password must contain at least 12 characters when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled
+                        || new[]
+                            {
+                                settings.OwnerEmail.Trim().ToLowerInvariant(),
+                                settings.DoctorEmail.Trim().ToLowerInvariant(),
+                                settings.PatientEmail.Trim().ToLowerInvariant()
+                            }.Distinct().Count() == 3,
+                    "Demo owner, doctor, and patient emails must be different.")
+                .ValidateOnStart();
+
             return services;
         }
 
@@ -156,6 +183,7 @@ namespace API.Services
         private static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<ValidationFilterAttribute>();
+            services.AddScoped<DemoDataSeeder>();
 
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IAuthService, DatabaseAuthService>();

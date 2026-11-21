@@ -36,6 +36,23 @@ public interface IDoctorAvailabilityService
         Guid doctorUserId,
         Guid availabilityId);
 
+    Task<ApiResponse<List<DoctorScheduleExceptionDto>>> GetScheduleExceptionsAsync(
+        Guid currentUserId,
+        Guid clinicId,
+        Guid doctorUserId);
+
+    Task<ApiResponse<DoctorScheduleExceptionDto>> CreateScheduleExceptionAsync(
+        Guid currentUserId,
+        Guid clinicId,
+        Guid doctorUserId,
+        CreateDoctorScheduleExceptionRequestDto request);
+
+    Task<ApiResponse<bool>> DeleteScheduleExceptionAsync(
+        Guid currentUserId,
+        Guid clinicId,
+        Guid doctorUserId,
+        Guid exceptionId);
+
     Task<ApiResponse<List<AvailabilitySlotDto>>> GetAvailableSlotsAsync(
         Guid currentUserId,
         Guid clinicId,

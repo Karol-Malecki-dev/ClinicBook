@@ -199,6 +199,20 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
             return ApiResponse<DoctorWeeklyAvailabilityDto>.Error(409, "This availability overlaps another window.");
         }
 
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(clinic!.TimeZoneId);
+        if (await WouldWeeklyChangeUncoverBookingAsync(
+                availability,
+                timeZone,
+                request.DayOfWeek,
+                request.StartTime,
+                request.EndTime,
+                request.SlotDurationMinutes))
+        {
+            return ApiResponse<DoctorWeeklyAvailabilityDto>.Error(
+                409,
+                "The schedule change conflicts with an existing booked appointment.");
+        }
+
         availability.Update(
             request.DayOfWeek,
             request.StartTime,
@@ -252,6 +266,14 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
             return ApiResponse<bool>.Error(404, "Availability window not found.");
         }
 
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(clinic!.TimeZoneId);
+        if (await WouldWeeklyChangeUncoverBookingAsync(availability, timeZone))
+        {
+            return ApiResponse<bool>.Error(
+                409,
+                "The availability cannot be removed because it contains a booked appointment.");
+        }
+
         _dbContext.DoctorWeeklyAvailabilities.Remove(availability);
         await _dbContext.SaveChangesAsync();
         if (transaction is not null)
@@ -260,6 +282,218 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
         }
 
         return ApiResponse<bool>.Success(true, "Doctor availability deleted.");
+    }
+
+    public async Task<ApiResponse<List<DoctorScheduleExceptionDto>>> GetScheduleExceptionsAsync(
+        Guid currentUserId,
+        Guid clinicId,
+        Guid doctorUserId)
+    {
+        var (clinic, doctor, error) = await GetDoctorContextAsync(clinicId, doctorUserId);
+        if (error is not null)
+        {
+            return ApiResponse<List<DoctorScheduleExceptionDto>>.Error(
+                error.Value.StatusCode,
+                error.Value.Message);
+        }
+
+        if (!await CanManageScheduleAsync(currentUserId, clinicId, doctorUserId))
+        {
+            return ApiResponse<List<DoctorScheduleExceptionDto>>.Error(
+                403,
+                "You cannot manage this doctor's schedule.");
+        }
+
+        var items = await _dbContext.DoctorScheduleExceptions
+            .AsNoTracking()
+            .Where(item => item.ClinicId == clinic!.Id && item.DoctorProfileId == doctor!.Id)
+            .OrderBy(item => item.Date)
+            .ThenBy(item => item.StartTime)
+            .ToListAsync();
+
+        return ApiResponse<List<DoctorScheduleExceptionDto>>.Success(
+            items.Select(item => ToDto(item, doctorUserId)).ToList());
+    }
+
+    public async Task<ApiResponse<DoctorScheduleExceptionDto>> CreateScheduleExceptionAsync(
+        Guid currentUserId,
+        Guid clinicId,
+        Guid doctorUserId,
+        CreateDoctorScheduleExceptionRequestDto request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        await using var transaction = await ClinicTransactionLock.BeginAsync(
+            _dbContext,
+            clinicId);
+
+        var (clinic, doctor, error) = await GetDoctorContextAsync(clinicId, doctorUserId);
+        if (error is not null)
+        {
+            return ApiResponse<DoctorScheduleExceptionDto>.Error(
+                error.Value.StatusCode,
+                error.Value.Message);
+        }
+
+        if (!await CanManageScheduleAsync(currentUserId, clinicId, doctorUserId))
+        {
+            return ApiResponse<DoctorScheduleExceptionDto>.Error(
+                403,
+                "You cannot manage this doctor's schedule.");
+        }
+
+        var timeZone = TimeZoneInfo.FindSystemTimeZoneById(clinic!.TimeZoneId);
+        var todayAtClinic = DateOnly.FromDateTime(
+            TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, timeZone).DateTime);
+        if (request.Date < todayAtClinic)
+        {
+            return ApiResponse<DoctorScheduleExceptionDto>.Error(
+                400,
+                "Schedule exception date cannot be in the past.");
+        }
+
+        if (request.StartTime < clinic.OpenTime || request.EndTime > clinic.CloseTime)
+        {
+            return ApiResponse<DoctorScheduleExceptionDto>.Error(
+                400,
+                "Schedule exception must fit within clinic opening hours.");
+        }
+
+        if (!TryGetUtcRange(
+                request.Date,
+                request.StartTime,
+                request.EndTime,
+                timeZone,
+                out var startsAtUtc,
+                out var endsAtUtc))
+        {
+            return ApiResponse<DoctorScheduleExceptionDto>.Error(
+                400,
+                "Schedule exception time cannot be represented unambiguously.");
+        }
+
+        var overlappingException = await _dbContext.DoctorScheduleExceptions
+            .AnyAsync(item =>
+                item.ClinicId == clinic.Id
+                && item.DoctorProfileId == doctor!.Id
+                && item.Date == request.Date
+                && (item.Type == request.Type
+                    || item.Type == ScheduleExceptionType.Closed
+                    || request.Type == ScheduleExceptionType.Closed)
+                && request.StartTime < item.EndTime
+                && item.StartTime < request.EndTime);
+        if (overlappingException)
+        {
+            return ApiResponse<DoctorScheduleExceptionDto>.Error(
+                409,
+                "This schedule exception overlaps an existing exception.");
+        }
+
+        if (request.Type == ScheduleExceptionType.Closed
+            && await HasBookedAppointmentOverlapAsync(
+                clinic.Id,
+                doctor!.Id,
+                startsAtUtc,
+                endsAtUtc))
+        {
+            return ApiResponse<DoctorScheduleExceptionDto>.Error(
+                409,
+                "The exception conflicts with an existing booked appointment.");
+        }
+
+        var scheduleException = new DoctorScheduleException(
+            clinic.Id,
+            doctor!.Id,
+            request.Date,
+            request.Type,
+            request.StartTime,
+            request.EndTime,
+            request.SlotDurationMinutes,
+            request.Reason);
+
+        _dbContext.DoctorScheduleExceptions.Add(scheduleException);
+        await _dbContext.SaveChangesAsync();
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
+
+        return ApiResponse<DoctorScheduleExceptionDto>.Success(
+            ToDto(scheduleException, doctorUserId),
+            "Doctor schedule exception created.",
+            201);
+    }
+
+    public async Task<ApiResponse<bool>> DeleteScheduleExceptionAsync(
+        Guid currentUserId,
+        Guid clinicId,
+        Guid doctorUserId,
+        Guid exceptionId)
+    {
+        await using var transaction = await ClinicTransactionLock.BeginAsync(
+            _dbContext,
+            clinicId);
+
+        var (clinic, doctor, error) = await GetDoctorContextAsync(clinicId, doctorUserId);
+        if (error is not null)
+        {
+            return ApiResponse<bool>.Error(error.Value.StatusCode, error.Value.Message);
+        }
+
+        if (!await CanManageScheduleAsync(currentUserId, clinicId, doctorUserId))
+        {
+            return ApiResponse<bool>.Error(
+                403,
+                "You cannot manage this doctor's schedule.");
+        }
+
+        var scheduleException = await _dbContext.DoctorScheduleExceptions
+            .FirstOrDefaultAsync(item =>
+                item.Id == exceptionId
+                && item.ClinicId == clinic!.Id
+                && item.DoctorProfileId == doctor!.Id);
+        if (scheduleException is null)
+        {
+            return ApiResponse<bool>.Error(404, "Schedule exception not found.");
+        }
+
+        if (scheduleException.Type == ScheduleExceptionType.Available)
+        {
+            var timeZone = TimeZoneInfo.FindSystemTimeZoneById(clinic!.TimeZoneId);
+            if (!TryGetUtcRange(
+                    scheduleException.Date,
+                    scheduleException.StartTime,
+                    scheduleException.EndTime,
+                    timeZone,
+                    out var startsAtUtc,
+                    out var endsAtUtc))
+            {
+                return ApiResponse<bool>.Error(
+                    409,
+                    "Schedule exception cannot be represented unambiguously and must be handled carefully.");
+            }
+
+            if (await HasBookingOnlyCoveredByExceptionAsync(
+                    doctor!,
+                    scheduleException,
+                    timeZone,
+                    startsAtUtc,
+                    endsAtUtc))
+            {
+                return ApiResponse<bool>.Error(
+                    409,
+                    "The availability cannot be removed because it contains a booked appointment.");
+            }
+        }
+
+        _dbContext.DoctorScheduleExceptions.Remove(scheduleException);
+        await _dbContext.SaveChangesAsync();
+        if (transaction is not null)
+        {
+            await transaction.CommitAsync();
+        }
+
+        return ApiResponse<bool>.Success(true, "Doctor schedule exception deleted.");
     }
 
     public async Task<ApiResponse<List<AvailabilitySlotDto>>> GetAvailableSlotsAsync(
@@ -296,8 +530,16 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
             .OrderBy(item => item.StartTime)
             .ToListAsync();
 
+        var exceptions = await _dbContext.DoctorScheduleExceptions
+            .AsNoTracking()
+            .Where(item =>
+                item.ClinicId == clinic.Id
+                && item.DoctorProfileId == doctor!.Id
+                && item.Date == date)
+            .ToListAsync();
+
         var now = DateTimeOffset.UtcNow;
-        var slots = GenerateSlots(date, weeklyAvailability, timeZone, now);
+        var slots = GenerateSlots(date, weeklyAvailability, exceptions, timeZone, now);
         if (slots.Count == 0)
         {
             return ApiResponse<List<AvailabilitySlotDto>>.Success(slots);
@@ -404,39 +646,86 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
     private static List<AvailabilitySlotDto> GenerateSlots(
         DateOnly date,
         IReadOnlyCollection<DoctorWeeklyAvailability> schedules,
+        IReadOnlyCollection<DoctorScheduleException> exceptions,
         TimeZoneInfo timeZone,
         DateTimeOffset now)
     {
         var slots = new List<AvailabilitySlotDto>();
         foreach (var schedule in schedules)
         {
-            var startTime = schedule.StartTime;
-            var slotDuration = TimeSpan.FromMinutes(schedule.SlotDurationMinutes);
-            while (schedule.EndTime - startTime >= slotDuration)
-            {
-                var endTime = startTime.AddMinutes(schedule.SlotDurationMinutes);
-                var localStart = date.ToDateTime(startTime, DateTimeKind.Unspecified);
-                var localEnd = date.ToDateTime(endTime, DateTimeKind.Unspecified);
-
-                if (TryConvertLocalToUtc(localStart, timeZone, out var startsAtUtc)
-                    && TryConvertLocalToUtc(localEnd, timeZone, out var endsAtUtc)
-                    && startsAtUtc > now)
-                {
-                    slots.Add(new AvailabilitySlotDto
-                    {
-                        StartsAtUtc = startsAtUtc,
-                        EndsAtUtc = endsAtUtc,
-                        LocalStart = localStart,
-                        LocalEnd = localEnd,
-                        TimeZoneId = timeZone.Id
-                    });
-                }
-
-                startTime = endTime;
-            }
+            AddSlots(
+                slots,
+                date,
+                schedule.StartTime,
+                schedule.EndTime,
+                schedule.SlotDurationMinutes,
+                timeZone,
+                now);
         }
 
-        return slots.OrderBy(slot => slot.StartsAtUtc).ToList();
+        foreach (var scheduleException in exceptions.Where(item =>
+                     item.Type == ScheduleExceptionType.Available))
+        {
+            AddSlots(
+                slots,
+                date,
+                scheduleException.StartTime,
+                scheduleException.EndTime,
+                scheduleException.SlotDurationMinutes,
+                timeZone,
+                now);
+        }
+
+        var closures = exceptions
+            .Where(item => item.Type == ScheduleExceptionType.Closed)
+            .ToList();
+
+        return slots
+            .Where(slot => closures.All(closure =>
+            {
+                var localStart = TimeOnly.FromDateTime(slot.LocalStart);
+                var localEnd = TimeOnly.FromDateTime(slot.LocalEnd);
+                return localStart >= closure.EndTime || localEnd <= closure.StartTime;
+            }))
+            .GroupBy(slot => slot.StartsAtUtc)
+            .Select(group => group.First())
+            .OrderBy(slot => slot.StartsAtUtc)
+            .ToList();
+    }
+
+    private static void AddSlots(
+        ICollection<AvailabilitySlotDto> slots,
+        DateOnly date,
+        TimeOnly rangeStart,
+        TimeOnly rangeEnd,
+        int slotDurationMinutes,
+        TimeZoneInfo timeZone,
+        DateTimeOffset now)
+    {
+        var startTime = rangeStart;
+        var slotDuration = TimeSpan.FromMinutes(slotDurationMinutes);
+        while (rangeEnd - startTime >= slotDuration)
+        {
+            var endTime = startTime.AddMinutes(slotDurationMinutes);
+            var localStart = date.ToDateTime(startTime, DateTimeKind.Unspecified);
+            var localEnd = date.ToDateTime(endTime, DateTimeKind.Unspecified);
+
+            if (TryConvertLocalToUtc(localStart, timeZone, out var startsAtUtc)
+                && TryConvertLocalToUtc(localEnd, timeZone, out var endsAtUtc)
+                && startsAtUtc > now)
+            {
+                slots.Add(new AvailabilitySlotDto
+                {
+                    StartsAtUtc = startsAtUtc,
+                    EndsAtUtc = endsAtUtc,
+                    LocalStart = localStart,
+                    LocalEnd = localEnd,
+                    TimeZoneId = timeZone.Id
+                });
+            }
+
+            startTime = endTime;
+        }
     }
 
     private static bool TryConvertLocalToUtc(
@@ -469,6 +758,244 @@ public sealed class DatabaseDoctorAvailabilityService : IDoctorAvailabilityServi
             EndTime = availability.EndTime,
             SlotDurationMinutes = availability.SlotDurationMinutes
         };
+    }
+
+    private static DoctorScheduleExceptionDto ToDto(
+        DoctorScheduleException scheduleException,
+        Guid doctorUserId)
+    {
+        return new DoctorScheduleExceptionDto
+        {
+            Id = scheduleException.Id,
+            ClinicId = scheduleException.ClinicId,
+            DoctorProfileId = scheduleException.DoctorProfileId,
+            DoctorUserId = doctorUserId,
+            Date = scheduleException.Date,
+            Type = scheduleException.Type,
+            StartTime = scheduleException.StartTime,
+            EndTime = scheduleException.EndTime,
+            SlotDurationMinutes = scheduleException.SlotDurationMinutes,
+            Reason = scheduleException.Reason
+        };
+    }
+
+    private Task<bool> HasBookedAppointmentOverlapAsync(
+        Guid clinicId,
+        Guid doctorProfileId,
+        DateTimeOffset startsAtUtc,
+        DateTimeOffset endsAtUtc)
+    {
+        return _dbContext.Appointments.AnyAsync(appointment =>
+            appointment.DoctorProfileId == doctorProfileId
+            && appointment.ClinicId == clinicId
+            && appointment.Status == AppointmentStatus.Booked
+            && appointment.StartsAtUtc < endsAtUtc
+            && appointment.EndsAtUtc > startsAtUtc);
+    }
+
+    private async Task<bool> HasBookingOnlyCoveredByExceptionAsync(
+        DoctorProfile doctor,
+        DoctorScheduleException scheduleException,
+        TimeZoneInfo timeZone,
+        DateTimeOffset startsAtUtc,
+        DateTimeOffset endsAtUtc)
+    {
+        var bookings = await _dbContext.Appointments
+            .AsNoTracking()
+            .Where(appointment =>
+                appointment.DoctorProfileId == doctor.Id
+                && appointment.ClinicId == scheduleException.ClinicId
+                && appointment.Status == AppointmentStatus.Booked
+                && appointment.StartsAtUtc < endsAtUtc
+                && appointment.EndsAtUtc > startsAtUtc)
+            .ToListAsync();
+        if (bookings.Count == 0)
+        {
+            return false;
+        }
+
+        var weeklyAvailability = await _dbContext.DoctorWeeklyAvailabilities
+            .AsNoTracking()
+            .Where(item =>
+                item.ClinicId == scheduleException.ClinicId
+                && item.DoctorProfileId == doctor.Id
+                && item.DayOfWeek == scheduleException.Date.DayOfWeek)
+            .ToListAsync();
+
+        return bookings.Any(booking =>
+        {
+            var localStart = TimeZoneInfo.ConvertTime(booking.StartsAtUtc, timeZone);
+            var localEnd = TimeZoneInfo.ConvertTime(booking.EndsAtUtc, timeZone);
+            if (DateOnly.FromDateTime(localStart.DateTime) != scheduleException.Date
+                || DateOnly.FromDateTime(localEnd.DateTime) != scheduleException.Date)
+            {
+                return true;
+            }
+
+            var startTime = TimeOnly.FromDateTime(localStart.DateTime);
+            var endTime = TimeOnly.FromDateTime(localEnd.DateTime);
+            var coveredByWeeklySchedule = weeklyAvailability.Any(schedule =>
+            {
+                if (startTime < schedule.StartTime || endTime > schedule.EndTime)
+                {
+                    return false;
+                }
+
+                var offsetMinutes = (startTime - schedule.StartTime).TotalMinutes;
+                var durationMinutes = (endTime - startTime).TotalMinutes;
+                return offsetMinutes % schedule.SlotDurationMinutes == 0
+                    && durationMinutes == schedule.SlotDurationMinutes;
+            });
+
+            return !coveredByWeeklySchedule;
+        });
+    }
+
+    private async Task<bool> WouldWeeklyChangeUncoverBookingAsync(
+        DoctorWeeklyAvailability changedAvailability,
+        TimeZoneInfo timeZone,
+        DayOfWeek? replacementDay = null,
+        TimeOnly? replacementStart = null,
+        TimeOnly? replacementEnd = null,
+        int? replacementSlotDuration = null)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var bookings = await _dbContext.Appointments
+            .AsNoTracking()
+            .Where(appointment =>
+                appointment.DoctorProfileId == changedAvailability.DoctorProfileId
+                && appointment.ClinicId == changedAvailability.ClinicId
+                && appointment.Status == AppointmentStatus.Booked
+                && appointment.StartsAtUtc > now)
+            .ToListAsync();
+        if (bookings.Count == 0)
+        {
+            return false;
+        }
+
+        var otherAvailability = await _dbContext.DoctorWeeklyAvailabilities
+            .AsNoTracking()
+            .Where(item =>
+                item.ClinicId == changedAvailability.ClinicId
+                && item.DoctorProfileId == changedAvailability.DoctorProfileId
+                && item.Id != changedAvailability.Id)
+            .ToListAsync();
+        var additionalAvailability = await _dbContext.DoctorScheduleExceptions
+            .AsNoTracking()
+            .Where(item =>
+                item.ClinicId == changedAvailability.ClinicId
+                && item.DoctorProfileId == changedAvailability.DoctorProfileId
+                && item.Type == ScheduleExceptionType.Available
+                && item.Date >= DateOnly.FromDateTime(
+                    TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, timeZone).DateTime))
+            .ToListAsync();
+
+        return bookings.Any(booking =>
+        {
+            var localStart = TimeZoneInfo.ConvertTime(booking.StartsAtUtc, timeZone);
+            var localEnd = TimeZoneInfo.ConvertTime(booking.EndsAtUtc, timeZone);
+            if (DateOnly.FromDateTime(localStart.DateTime)
+                != DateOnly.FromDateTime(localEnd.DateTime))
+            {
+                return false;
+            }
+
+            var date = DateOnly.FromDateTime(localStart.DateTime);
+            var startTime = TimeOnly.FromDateTime(localStart.DateTime);
+            var endTime = TimeOnly.FromDateTime(localEnd.DateTime);
+            if (!IsCoveredByWindow(
+                    date.DayOfWeek,
+                    startTime,
+                    endTime,
+                    changedAvailability.DayOfWeek,
+                    changedAvailability.StartTime,
+                    changedAvailability.EndTime,
+                    changedAvailability.SlotDurationMinutes))
+            {
+                return false;
+            }
+
+            var remainsCovered = otherAvailability.Any(item => IsCoveredByWindow(
+                date.DayOfWeek,
+                startTime,
+                endTime,
+                item.DayOfWeek,
+                item.StartTime,
+                item.EndTime,
+                item.SlotDurationMinutes));
+
+            remainsCovered |= additionalAvailability.Any(item =>
+                item.Date == date
+                && IsCoveredByWindow(
+                    date.DayOfWeek,
+                    startTime,
+                    endTime,
+                    date.DayOfWeek,
+                    item.StartTime,
+                    item.EndTime,
+                    item.SlotDurationMinutes));
+
+            if (!remainsCovered
+                && replacementDay.HasValue
+                && replacementStart.HasValue
+                && replacementEnd.HasValue
+                && replacementSlotDuration.HasValue)
+            {
+                remainsCovered = IsCoveredByWindow(
+                    date.DayOfWeek,
+                    startTime,
+                    endTime,
+                    replacementDay.Value,
+                    replacementStart.Value,
+                    replacementEnd.Value,
+                    replacementSlotDuration.Value);
+            }
+
+            return !remainsCovered;
+        });
+    }
+
+    private static bool IsCoveredByWindow(
+        DayOfWeek dateDay,
+        TimeOnly appointmentStart,
+        TimeOnly appointmentEnd,
+        DayOfWeek windowDay,
+        TimeOnly windowStart,
+        TimeOnly windowEnd,
+        int slotDurationMinutes)
+    {
+        if (dateDay != windowDay
+            || appointmentStart < windowStart
+            || appointmentEnd > windowEnd)
+        {
+            return false;
+        }
+
+        var offsetMinutes = (appointmentStart - windowStart).TotalMinutes;
+        var durationMinutes = (appointmentEnd - appointmentStart).TotalMinutes;
+        return offsetMinutes % slotDurationMinutes == 0
+            && durationMinutes == slotDurationMinutes;
+    }
+
+    private static bool TryGetUtcRange(
+        DateOnly date,
+        TimeOnly startTime,
+        TimeOnly endTime,
+        TimeZoneInfo timeZone,
+        out DateTimeOffset startsAtUtc,
+        out DateTimeOffset endsAtUtc)
+    {
+        var localStart = date.ToDateTime(startTime, DateTimeKind.Unspecified);
+        var localEnd = date.ToDateTime(endTime, DateTimeKind.Unspecified);
+        if (!TryConvertLocalToUtc(localStart, timeZone, out startsAtUtc)
+            || !TryConvertLocalToUtc(localEnd, timeZone, out endsAtUtc))
+        {
+            startsAtUtc = default;
+            endsAtUtc = default;
+            return false;
+        }
+
+        return true;
     }
 
     private static bool IsAvailabilityUniqueViolation(DbUpdateException exception)

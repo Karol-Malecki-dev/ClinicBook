@@ -125,6 +125,7 @@ export type {
 export {
   AppointmentStatus,
   ClinicRole,
+  ScheduleExceptionType,
 } from './clinic';
 
 export type {
@@ -138,6 +139,8 @@ export type {
   CreateDoctorProfileRequest,
   DoctorWeeklyAvailabilityDto,
   SetDoctorWeeklyAvailabilityRequest,
+  DoctorScheduleExceptionDto,
+  CreateDoctorScheduleExceptionRequest,
   AvailabilitySlotDto,
   AppointmentDto,
   CreateAppointmentRequest,
@@ -148,6 +151,7 @@ export type {
   ClinicDoctorsResponse,
   DoctorProfileResponse,
   DoctorWeeklyAvailabilityResponse,
+  DoctorScheduleExceptionsResponse,
   AvailabilitySlotsResponse,
   AppointmentResponse,
   AppointmentsResponse,
