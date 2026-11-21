@@ -1,22 +1,28 @@
 # ClinicBook
 
-ClinicBook is a full-stack ASP.NET Core 9 and React + TypeScript application for clinic booking and healthcare staff workflows. The current codebase provides the production-minded foundation and shared infrastructure: authentication, refresh-token rotation in HttpOnly cookies, role-aware access, PostgreSQL, Docker Compose, and automated test projects.
+Full-stack clinic management and appointment booking application built with an ASP.NET Core 9 API, a React + TypeScript frontend, PostgreSQL, JWT authentication, Docker Compose, and automated tests.
 
-ClinicBook is being developed one roadmap area at a time. The domain modules for clinics, users and roles, availability, appointments, calendars, announcements, staff work organization, notifications, and portfolio integrations are implemented and documented as separate roadmap gates.
+ClinicBook is developed one roadmap area at a time. The roadmaps cover clinic and staff foundations, availability, appointments, calendars, announcements, staff work organization, notifications, and portfolio integrations.
 
 ## Features
 
-- Clean Architecture backend split into `API`, `Application`, `Domain`, `Infrastructure`, and `Shared`
-- React + TypeScript frontend with protected routes, authenticated session handling, runtime feature gating, and a quick search shell
+- Clinic, doctor, patient, and clinic-membership workflows
+- Recurring weekly doctor availability and clinic-local appointment slots
+- Patient booking and cancellation, plus staff appointment management
+- Clinic-selected IANA time zones, with the browser time zone shown as an editable suggestion
+- Backend split into `API`, `Application`, `Domain`, `Infrastructure`, and `Shared`
+- React + TypeScript frontend with protected routes and authenticated session handling
 - JWT access tokens with secure refresh-token rotation in HttpOnly cookies
 - Email confirmation and email-based 2FA during sign-in
-- Role-aware authorization for admin-only endpoints and views
+- Role-aware authorization for clinic owners, clinic administrators, doctors, receptionists, and patients
 - React Hook Form + Zod for frontend form validation
 - Serilog logging and centralized exception handling
 - Dockerfiles for backend and frontend
 - Docker Compose setup with PostgreSQL, Mailpit for local email delivery, backend healthcheck, and frontend proxy-ready API routing
 - Unit, integration, and smoke/E2E test projects
 - Swagger UI in development
+
+V1 scope, time-zone behavior, endpoints, and known limitations are documented in [doc/CLINICBOOK_V1.md](doc/CLINICBOOK_V1.md).
 
 ## Current Stack
 
@@ -117,8 +123,11 @@ Use `RuntimeConfigProvider` and `useFeatureAvailability()` to read them from the
 ### Run with Docker
 
 ```powershell
+<<<<<<< HEAD
 git clone https://github.com/Karol8284/ClinicBook.git
 Set-Location ClinicBook
+=======
+>>>>>>> origin/main
 Copy-Item .env.example .env
 docker compose up --build
 ```
@@ -136,7 +145,7 @@ Default local endpoints:
 Backend:
 
 ```powershell
-Set-Location backend/API
+Set-Location backend\API
 dotnet run
 ```
 
@@ -163,9 +172,9 @@ The default Docker Compose configuration is intended for local development and s
 ### Backend
 
 ```powershell
-dotnet test backend/UnitTests/UnitTests.csproj
-dotnet test backend/IntegrationTests/IntegrationTests.csproj
-dotnet test backend/E2ETests/E2ETests.csproj
+dotnet test backend\UnitTests\UnitTests.csproj
+dotnet test backend\IntegrationTests\IntegrationTests.csproj
+dotnet test backend\E2ETests\E2ETests.csproj
 ```
 
 Smoke tests in `E2ETests` are meant for a running application, for example after `docker compose up` or after deployment.
@@ -173,7 +182,7 @@ Smoke tests in `E2ETests` are meant for a running application, for example after
 To build the containers, wait for the backend and frontend, run the full test solution, and clean up automatically:
 
 ```powershell
-./scripts/Invoke-E2ETests.ps1
+.\scripts\Invoke-E2ETests.ps1
 ```
 
 Optional smoke-test overrides:
@@ -181,7 +190,7 @@ Optional smoke-test overrides:
 ```powershell
 $env:SMOKE_API_URL="http://localhost:5000"
 $env:SMOKE_FRONTEND_URL="http://localhost:3000"
-dotnet test backend/E2ETests/E2ETests.csproj
+dotnet test backend\E2ETests\E2ETests.csproj
 ```
 
 ### Frontend
@@ -210,6 +219,7 @@ For local Docker runs, transactional emails are delivered to Mailpit. Open http:
 
 ## Documentation
 
+- [doc/CLINICBOOK_V1.md](doc/CLINICBOOK_V1.md)
 - [doc/GETTING_STARTED.md](doc/GETTING_STARTED.md)
 - [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md)
 - [doc/BACKEND_SETUP.md](doc/BACKEND_SETUP.md)

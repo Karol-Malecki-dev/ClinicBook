@@ -28,7 +28,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SystemAdministrator")]
     public async Task<ActionResult<ApiResponse<UserDto>>> GetUserById(Guid id)
     {
         var result = await _userService.GetUserByIdAsync(id);
@@ -36,7 +36,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SystemAdministrator")]
     public async Task<ActionResult<ApiResponse<List<UserDto>>>> GetAllUsers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         var result = await _userService.GetAllUsersPagedAsync(pageNumber, pageSize);
@@ -56,7 +56,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpGet("count")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SystemAdministrator")]
     public async Task<ActionResult<ApiResponse<int>>> GetCount()
     {
         var result = await _userService.GetUserCountAsync();
@@ -64,7 +64,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SystemAdministrator")]
     public async Task<ActionResult<ApiResponse<bool>>> Delete(Guid id)
     {
         var result = await _userService.DeleteUserAsync(id);
@@ -72,7 +72,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id:guid}/display-name")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SystemAdministrator")]
     public async Task<ActionResult<ApiResponse<UserDto>>> UpdateDisplayName(Guid id, [FromBody] string displayName)
     {
         var result = await _userService.UpdateDisplayNameAsync(id, displayName);
@@ -80,7 +80,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{id:guid}/role")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "SystemAdministrator")]
     public async Task<ActionResult<ApiResponse<UserDto>>> UpdateRole(Guid id, [FromBody] string role)
     {
         var result = await _userService.UpdateUserRoleAsync(id, role);

@@ -14,7 +14,7 @@ namespace Application.DTOs.Admin
         public int ActiveUsers { get; set; }
         public int InactiveUsers { get; set; }
         public int NewUsersLast7Days { get; set; }
-        // Admin
+        // SystemAdministrator
         public int AdminUsers { get; set; }
         public int ActiveAdminUsers { get; set; }
     }

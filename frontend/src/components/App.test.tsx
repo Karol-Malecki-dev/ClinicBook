@@ -8,6 +8,9 @@ import { vi } from 'vitest';
 
 vi.mock('../hooks/useAuth');
 vi.mock('../hooks/useFeatureAvailability');
+vi.mock('../context/AuthContext', () => ({
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
+}));
 vi.mock('../context/RuntimeConfigContext', () => ({
   RuntimeConfigProvider: ({ children }: { children: ReactNode }) => children,
 }));
@@ -52,9 +55,9 @@ test('renders the public home experience for anonymous users', () => {
 
   render(<App />);
 
-  expect(screen.getByRole('heading', { name: /professional auth flow, clear boundaries, zero guessing/i })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: /umów wizytę w klinice/i })).toBeInTheDocument();
   expect(screen.getByRole('searchbox', { name: /project search/i })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /login/i })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /register/i })).toBeInTheDocument();
-  expect(screen.getByText(/nie jesteś zalogowany/i)).toBeInTheDocument();
+  expect(screen.getByText(/zaloguj się lub utwórz konto/i)).toBeInTheDocument();
 });

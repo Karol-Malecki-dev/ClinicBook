@@ -70,6 +70,11 @@ services:
       - EmailDelivery__Username=${EMAIL_DELIVERY_USERNAME:-}
       - EmailDelivery__Password=${EMAIL_DELIVERY_PASSWORD:-}
       - EmailDelivery__UseStartTls=${EMAIL_DELIVERY_USE_START_TLS:-false}
+      - Demo__Enabled=${DEMO_DATA_ENABLED:-false}
+      - Demo__OwnerEmail=${DEMO_OWNER_EMAIL:-owner@clinicbook.local}
+      - Demo__DoctorEmail=${DEMO_DOCTOR_EMAIL:-doctor@clinicbook.local}
+      - Demo__PatientEmail=${DEMO_PATIENT_EMAIL:-patient@clinicbook.local}
+      - Demo__Password=${DEMO_PASSWORD:-ClinicBook123!}
     depends_on:
       db:
         condition: service_healthy

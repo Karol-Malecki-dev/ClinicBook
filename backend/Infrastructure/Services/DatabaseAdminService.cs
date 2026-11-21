@@ -39,10 +39,10 @@ namespace Infrastructure.Services
                 .CountAsync(u => u.CreatedAt >= DateTime.UtcNow.AddDays(-7));
 
             var totalAdminUsers = await _dbContext.Users.AsNoTracking()
-                .CountAsync(u => u.Role == UserRole.Admin);
+                .CountAsync(u => u.Role == UserRole.SystemAdministrator);
 
             var activeAdminUsers = await _dbContext.Users.AsNoTracking()
-                .CountAsync(u => u.IsActive && u.Role == UserRole.Admin);
+                .CountAsync(u => u.IsActive && u.Role == UserRole.SystemAdministrator);
 
             result.TotalUsers = totalUsers;
             result.ActiveUsers = activeUsers;

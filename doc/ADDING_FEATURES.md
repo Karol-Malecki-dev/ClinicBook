@@ -201,6 +201,19 @@ dotnet ef migrations add AddProjectTasks `
 6. Testy cyklu życia zadania, własności, archiwizacji i walidacji.
 7. Dopiero po stabilizacji API integracja z frontendem.
 
+## Clinic Booking V1
+
+Przepływ rezerwacji i jego kontrakty opisuje [CLINICBOOK_V1.md](./CLINICBOOK_V1.md).
+Przy jego rozszerzaniu zachowaj następujące invariants:
+
+- `Clinic.TimeZoneId` jest wybierany przez klinikę; strefa urządzenia jest tylko propozycją interfejsu.
+- `DoctorWeeklyAvailability` przechowuje lokalne okna tygodniowe dla pary klinika–lekarz.
+- Okna jednego lekarza nie mogą się nakładać w tej samej klinice i muszą mieścić się w godzinach otwarcia.
+- `Appointment.StartsAtUtc` i `EndsAtUtc` są zapisane w UTC; nie traktuj lokalnego `DateTime` z API jak wartości UTC.
+- Rezerwacja musi wskazywać dokładny termin zwrócony przez endpoint dostępności; backend ponownie sprawdza jego zajętość.
+- Autoryzację pacjenta i personelu egzekwuje backend. Widoczność przycisków w UI nie jest zabezpieczeniem.
+- Zmiana modelu persistence wymaga migracji EF Core oraz testu API obejmującego właściwą rolę i granicę kliniki.
+
 ## Which Document To Open Next
 
 W zależności od typu zmiany przejdź dalej do odpowiedniego pliku:

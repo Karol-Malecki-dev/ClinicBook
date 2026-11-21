@@ -1,11 +1,15 @@
 # ClinicBook
 
-ClinicBook to pełnostackowa aplikacja ASP.NET Core 9 i React + TypeScript do rezerwacji wizyt i organizacji pracy personelu kliniki. Obecna baza udostępnia stabilną warstwę infrastruktury: uwierzytelnianie, rotację refresh tokenów w ciasteczkach HttpOnly, autoryzację opartą na rolach, PostgreSQL, Docker Compose oraz automatyczne testy.
+Aplikacja full-stack do zarządzania kliniką i rezerwowania wizyt. Backend ASP.NET Core 9 udostępnia API z uwierzytelnianiem JWT, a frontend React + TypeScript obsługuje pacjentów i personel kliniki. PostgreSQL przechowuje grafik tygodniowy oraz wizyty jako terminy UTC wyświetlane w lokalnej strefie czasowej kliniki.
 
-ClinicBook jest rozwijany etapami zgodnymi z roadmapą. Moduły klinik, użytkowników i ról, dostępności, wizyt, kalendarzy, ogłoszeń, organizacji pracy, powiadomień oraz integracji portfolio są realizowane jako osobne bramki.
+ClinicBook jest rozwijany etapami zgodnymi z roadmapą: kliniki i role, dostępność, wizyty, kalendarze, ogłoszenia, organizacja pracy, powiadomienia oraz integracje portfolio.
 
 ## Najważniejsze funkcje
 
+- profile klinik, lekarzy i członkostw z rolami personelu;
+- tygodniowa dostępność lekarzy oraz wyszukiwanie i rezerwowanie terminów;
+- przegląd i anulowanie wizyt przez pacjenta oraz obsługa wizyt przez personel;
+- strefa IANA wybierana dla kliniki, z propozycją na podstawie strefy urządzenia;
 - podział backendu na warstwy `API`, `Application`, `Domain`, `Infrastructure` i `Shared`;
 - JWT access token oraz rotacja refresh tokenów w ciasteczkach HttpOnly;
 - potwierdzanie adresu e-mail i e-mailowe 2FA;
@@ -57,6 +61,8 @@ Aktywny manifest aplikacji frontendowej znajduje się w [frontend/package.json](
 └── .github/workflows/        # workflowy CI i publikacji obrazów
 ```
 
+Szczegółowy zakres i ograniczenia V1 znajdują się w [doc/CLINICBOOK_V1.md](doc/CLINICBOOK_V1.md).
+
 ## Szybki start
 
 ### Wymagania
@@ -68,8 +74,11 @@ Aktywny manifest aplikacji frontendowej znajduje się w [frontend/package.json](
 ### Docker Compose
 
 ```powershell
+<<<<<<< HEAD
 git clone https://github.com/Karol8284/ClinicBook.git
 Set-Location ClinicBook
+=======
+>>>>>>> origin/main
 Copy-Item .env.example .env
 docker compose up --build
 ```
@@ -84,12 +93,28 @@ Lokalne adresy:
 
 Compose uruchamia PostgreSQL, Mailpit, backend i frontend. Wartości domyślne są przeznaczone do lokalnego developmentu. Sekrety środowiska docelowego należy dostarczać przez konfigurację hostingu lub bezpieczny magazyn sekretów.
 
+### Dane demonstracyjne
+
+Demo jest wyłączone domyślnie i nigdy nie powinno być włączone w środowisku produkcyjnym.
+W jednorazowym lokalnym środowisku ustaw `DEMO_DATA_ENABLED=true` przed uruchomieniem Compose.
+Seeder jest idempotentny i tworzy klinikę, właściciela, lekarza, pacjenta oraz grafik poniedziałek-piątek.
+
+Domyślne konta:
+
+| Rola | E-mail | Hasło |
+|---|---|---|
+| właściciel | `owner@clinicbook.local` | `ClinicBook123!` |
+| lekarz | `doctor@clinicbook.local` | `ClinicBook123!` |
+| pacjent | `patient@clinicbook.local` | `ClinicBook123!` |
+
+Wartości można zmienić przez zmienne `DEMO_*` opisane w `.env.example`.
+
 ### Uruchomienie lokalne bez Dockera
 
 Backend:
 
 ```powershell
-Set-Location backend/API
+Set-Location backend\API
 dotnet run
 ```
 
@@ -122,15 +147,24 @@ Frontend przechowuje lokalnie wyłącznie access token. Refresh token pozostaje 
 Backend:
 
 ```powershell
-dotnet test backend/UnitTests/UnitTests.csproj
-dotnet test backend/IntegrationTests/IntegrationTests.csproj
+dotnet test backend\UnitTests\UnitTests.csproj
+dotnet test backend\IntegrationTests\IntegrationTests.csproj
+```
+
+Test przepływu rezerwacji:
+
+```powershell
+dotnet test backend\IntegrationTests\IntegrationTests.csproj --filter FullyQualifiedName~ClinicBookingApiIntegrationTests
 ```
 
 Smoke testy E2E wymagają uruchomionego środowiska:
 
 ```powershell
-./scripts/Invoke-E2ETests.ps1
+.\scripts\Invoke-E2ETests.ps1
 ```
+
+Przy aktywnych danych demonstracyjnych test E2E dodatkowo weryfikuje pełny przepływ:
+wyszukanie terminu, rezerwację pacjenta, odczyt przez właściciela kliniki i anulowanie.
 
 Frontend:
 
@@ -151,6 +185,9 @@ Workflow CD publikuje obrazy z tagiem SHA oraz `latest`. Nie wykonuje jeszcze wd
 
 ## Znane ograniczenia
 
+- grafik obsługuje jednorazowe zamknięcia i dodatkową dostępność, ale nie posiada katalogu urlopów ani świąt;
+- V1 nie wysyła powiadomień o rezerwacji i nie przechowuje powodów wizyt, diagnoz ani dokumentacji medycznej;
+- zmiana strefy kliniki po utworzeniu wizyty jest blokowana;
 - frontend korzysta z Vite i Vitest; pozostałe podatności React Routera wymagają osobnej decyzji dotyczącej migracji do wersji 7;
 - Docker Compose jest przede wszystkim lokalnym środowiskiem uruchomieniowym i testowym;
 - domyślne hasła oraz sekrety Compose nie nadają się do środowiska produkcyjnego;
@@ -159,6 +196,7 @@ Workflow CD publikuje obrazy z tagiem SHA oraz `latest`. Nie wykonuje jeszcze wd
 
 ## Dokumentacja
 
+- [doc/CLINICBOOK_V1.md](doc/CLINICBOOK_V1.md)
 - [doc/GETTING_STARTED.md](doc/GETTING_STARTED.md)
 - [doc/ARCHITECTURE.md](doc/ARCHITECTURE.md)
 - [doc/BACKEND_SETUP.md](doc/BACKEND_SETUP.md)

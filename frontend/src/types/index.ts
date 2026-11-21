@@ -122,3 +122,38 @@ export type {
   ProjectMemberResponse,
 } from './project';
 
+export {
+  AppointmentStatus,
+  ClinicRole,
+  ScheduleExceptionType,
+} from './clinic';
+
+export type {
+  ClinicAddress,
+  ClinicDto,
+  CreateClinicRequest,
+  AddClinicMemberRequest,
+  ClinicMembershipDto,
+  ClinicDoctorDto,
+  DoctorProfileDto,
+  CreateDoctorProfileRequest,
+  DoctorWeeklyAvailabilityDto,
+  SetDoctorWeeklyAvailabilityRequest,
+  DoctorScheduleExceptionDto,
+  CreateDoctorScheduleExceptionRequest,
+  AvailabilitySlotDto,
+  AppointmentDto,
+  CreateAppointmentRequest,
+  ClinicsResponse,
+  ClinicResponse,
+  ClinicMembershipResponse,
+  ClinicMembersResponse,
+  ClinicDoctorsResponse,
+  DoctorProfileResponse,
+  DoctorWeeklyAvailabilityResponse,
+  DoctorScheduleExceptionsResponse,
+  AvailabilitySlotsResponse,
+  AppointmentResponse,
+  AppointmentsResponse,
+  ClinicOperationResponse,
+} from './clinic';

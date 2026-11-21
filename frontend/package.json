@@ -30,5 +30,8 @@
     "test:once": "vitest run",
     "preview": "vite preview"
   },
-  "type": "module"
+  "type": "module",
+  "devDependencies": {
+    "jsdom": "^26.1.0"
+  }
 }

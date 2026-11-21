@@ -12,14 +12,17 @@ export function Navbar() {
     adminNavigationEnabled,
     userManagementNavigationEnabled,
     emailTwoFactorEnabled,
-    projectsEnabled,
   } = useFeatureAvailability();
   const isAdmin = user?.role === 'Admin';
 
   const searchItems: QuickSearchItem[] = [
     { label: 'Home', description: 'Landing page and auth overview', to: '/' },
     ...(isAuthenticated && dashboardOverviewEnabled ? [{ label: 'Dashboard', description: 'Protected workspace summary', to: '/dashboard' }] : []),
-    ...(isAuthenticated && projectsEnabled ? [{ label: 'Projects', description: 'Manage projects and tasks', to: '/projects' }] : []),
+    ...(isAuthenticated ? [
+      { label: 'Clinics', description: 'Find a clinic and book an appointment', to: '/clinics' },
+      { label: 'Appointments', description: 'View and manage clinic appointments', to: '/appointments' },
+      { label: 'Doctor schedule', description: 'Manage weekly availability', to: '/clinic-schedule' },
+    ] : []),
     ...(isAuthenticated ? [{ label: 'Profile', description: 'Manage your account details', to: '/profile' }] : []),
     ...(isAdmin && adminNavigationEnabled ? [{ label: 'Admin panel', description: 'Administration overview', to: '/admin' }] : []),
     ...(isAdmin && userManagementNavigationEnabled ? [{ label: 'Users directory', description: 'Search and manage users', to: '/admin/users', keywords: ['users', 'people'] }] : []),
@@ -38,10 +41,10 @@ export function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar__brand">
-        <span className="navbar__logo">DRS</span>
+        <span className="navbar__logo">CB</span>
         <div>
-          <strong>dotnet-react-starter</strong>
-          <p>JWT-ready frontend</p>
+          <strong>ClinicBook</strong>
+          <p>Rezerwacja wizyt</p>
         </div>
       </div>
 
@@ -56,7 +59,9 @@ export function Navbar() {
       <nav className="navbar__links">
         <NavLink to="/">Home</NavLink>
         {isAuthenticated && dashboardOverviewEnabled ? <NavLink to="/dashboard">Dashboard</NavLink> : null}
-        {isAuthenticated && projectsEnabled ? <NavLink to="/projects">Projects</NavLink> : null}
+        {isAuthenticated ? <NavLink to="/clinics">Kliniki</NavLink> : null}
+        {isAuthenticated ? <NavLink to="/appointments">Wizyty</NavLink> : null}
+        {isAuthenticated ? <NavLink to="/clinic-schedule">Grafik</NavLink> : null}
         {isAuthenticated ? <NavLink to="/profile">Profile</NavLink> : null}
         {isAdmin && adminNavigationEnabled ? <NavLink to="/admin">Admin</NavLink> : null}
         {isAdmin && userManagementNavigationEnabled ? <NavLink to="/admin/users">Users</NavLink> : null}

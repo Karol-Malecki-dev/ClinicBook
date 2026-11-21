@@ -1,5 +1,6 @@
 export { authApi, AuthApi } from './AuthApi';
 export { adminApi, AdminApi } from './AdminApi';
+export { clinicApi, ClinicApi } from './ClinicApi';
 export { httpClient, HttpClient, HttpError } from './HttpClient';
 export { projectApi, ProjectApi } from './ProjectApi';
 export { runtimeConfigApi, RuntimeConfigApi } from './RuntimeConfigApi';

@@ -1,6 +1,7 @@
 using API.Middleware;
 using API.Services;
 using Infrastructure.Data;
+using Infrastructure.Data.Seeds;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 
@@ -46,6 +47,10 @@ try
             {
                 Log.Information("✓ Database initialized using non-relational provider");
             }
+
+            var demoDataSeeder = scope.ServiceProvider.GetRequiredService<DemoDataSeeder>();
+            await demoDataSeeder.SeedAsync(dbContext);
+            Log.Information("✓ Optional demo data initialization completed");
         }
         catch (Exception ex)
         {
@@ -83,6 +88,7 @@ try
 catch (Exception ex)
 {
     Log.Fatal(ex, "💥 Application terminated unexpectedly");
+    throw;
 }
 finally
 {

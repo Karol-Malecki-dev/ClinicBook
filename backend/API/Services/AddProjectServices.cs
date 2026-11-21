@@ -1,12 +1,22 @@
 ﻿using API.Configurations;
 using API.Filters;
+using Application.Mappings;
 using Application.Interfaces;
+using Application.Interfaces.Clinic;
+using Application.Interfaces.Doctor;
+using Application.Interfaces.Patient;
+using Application.Interfaces.Specialization;
 using Application.Services;
+using AutoMapper;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Domain.Interfaces;
 using Infrastructure.Data;
+using Infrastructure.Data.Seeds;
 using Infrastructure.Services;
+using Infrastructure.Services.Clinic;
+using Infrastructure.Services.Doctor;
+using Infrastructure.Services.Patient;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +36,11 @@ namespace API.Services
         /// </summary>
         public static IServiceCollection AddProjectServices(this IServiceCollection services, IConfiguration configuration)
         {
+            services.AddAutoMapper(configuration =>
+            {
+                configuration.AddMaps(typeof(AutoMapperProfile).Assembly);
+            });
+
             services.AddApiPipelineServices();
             services.AddApplicationOptions(configuration);
             services.AddPersistence(configuration);
@@ -109,6 +124,32 @@ namespace API.Services
                     "Email delivery from address is required when email delivery is enabled.")
                 .ValidateOnStart();
 
+            services.AddOptions<DemoDataSettings>()
+                .Bind(configuration.GetSection("Demo"))
+                .Validate(
+                    settings => !settings.Enabled || !string.IsNullOrWhiteSpace(settings.OwnerEmail),
+                    "Demo owner email is required when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled || !string.IsNullOrWhiteSpace(settings.DoctorEmail),
+                    "Demo doctor email is required when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled || !string.IsNullOrWhiteSpace(settings.PatientEmail),
+                    "Demo patient email is required when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled
+                        || (!string.IsNullOrWhiteSpace(settings.Password) && settings.Password.Length >= 12),
+                    "Demo password must contain at least 12 characters when demo data is enabled.")
+                .Validate(
+                    settings => !settings.Enabled
+                        || new[]
+                            {
+                                settings.OwnerEmail.Trim().ToLowerInvariant(),
+                                settings.DoctorEmail.Trim().ToLowerInvariant(),
+                                settings.PatientEmail.Trim().ToLowerInvariant()
+                            }.Distinct().Count() == 3,
+                    "Demo owner, doctor, and patient emails must be different.")
+                .ValidateOnStart();
+
             return services;
         }
 
@@ -142,6 +183,7 @@ namespace API.Services
         private static IServiceCollection AddApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<ValidationFilterAttribute>();
+            services.AddScoped<DemoDataSeeder>();
 
             services.AddScoped<IJwtTokenService, JwtTokenService>();
             services.AddScoped<IAuthService, DatabaseAuthService>();
@@ -149,6 +191,15 @@ namespace API.Services
             services.AddScoped<IAdminService, DatabaseAdminService>();
             services.AddScoped<IProjectService, DatabaseProjectService>();
             services.AddScoped<IProjectTaskService, DatabaseProjectTaskService>();
+            services.AddScoped<IClinicService, DatabaseClinicService>();
+            services.AddScoped<IClinicRoomService, DatabaseClinicRoomService>();
+            services.AddScoped<IClinicMembershipService, DatabaseClinicMembershipService>();
+            services.AddScoped<IDoctorAvailabilityService, DatabaseDoctorAvailabilityService>();
+            services.AddScoped<IAppointmentService, DatabaseAppointmentService>();
+            services.AddScoped<IDoctorProfileService, DatabaseDoctorProfileService>();
+            services.AddScoped<IDoctorSpecializationService, DatabaseDoctorSpecializationService>();
+            services.AddScoped<IPatientProfileService, DatabasePatientProfileService>();
+            services.AddScoped<ISpecializationService, DatabaseSpecializationService>();
 
             services.AddScoped<LoggingAccountEmailSender>();
             services.AddScoped<MailKitAccountEmailSender>();

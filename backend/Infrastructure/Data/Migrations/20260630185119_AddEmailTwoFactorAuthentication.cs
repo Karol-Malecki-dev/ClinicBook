@@ -213,7 +213,7 @@ namespace Infrastructure.Data.Migrations
             migrationBuilder.Sql(@"
                 UPDATE ""Users""
                 SET ""RoleText"" = CASE
-                    WHEN ""Role"" = 1 THEN 'Admin'
+                    WHEN ""Role"" = 1 THEN 'SystemAdministrator'
                     ELSE 'User'
                 END;
             ");
